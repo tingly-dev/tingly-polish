@@ -1,17 +1,15 @@
 import * as React from 'react';
 import {
   Box,
-  Container,
-  Paper,
   Typography,
   Button,
-  ButtonGroup,
+  CircularProgress,
+  Chip,
   Card,
   CardContent,
-  Chip,
   IconButton,
-  CircularProgress,
-  Alert,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -75,142 +73,260 @@ export function HistoryPage() {
     return entry.type === filter;
   });
 
-  const getEntryIcon = (type: 'translate' | 'polish') => {
-    return type === 'translate' ? <TranslateIcon /> : <AutoFixHighIcon />;
-  };
-
   const getEntryColor = (type: 'translate' | 'polish') => {
     return type === 'translate' ? 'primary' : 'secondary';
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-        <CircularProgress />
+      <Box
+        display="flex"
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+        height="100%"
+        gap={2}
+      >
+        <CircularProgress size={32} />
+        <Typography
+          sx={{
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '0.875rem',
+            color: 'text.secondary',
+          }}
+        >
+          Loading history...
+        </Typography>
       </Box>
     );
   }
 
   return (
-    <Container maxWidth="sm" disableGutters>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Box>
-          <Typography variant="h6" fontWeight="bold">
-            History
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {filteredHistory.length} {filteredHistory.length === 1 ? 'entry' : 'entries'}
-          </Typography>
+    <Box display="flex" flexDirection="column" height="100%">
+      {/* Header - Sticky at top */}
+      <Box
+        sx={{
+          p: 3,
+          pb: 2,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        {/* Title row */}
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <HistoryIcon color="primary" sx={{ fontSize: '1.25rem' }} />
+            <Box>
+              <Typography variant="h6">History</Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontSize: '0.75rem' }}
+              >
+                {filteredHistory.length} {filteredHistory.length === 1 ? 'entry' : 'entries'}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Clear button */}
+          {history.length > 0 && (
+            <IconButton
+              onClick={handleClearHistory}
+              color="error"
+              size="small"
+              title="Clear all history"
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          )}
         </Box>
+
+        {/* Filter */}
         {history.length > 0 && (
-          <Button
-            variant="outlined"
-            color="error"
+          <ToggleButtonGroup
+            value={filter}
+            exclusive
+            onChange={(_, value) => value && setFilter(value)}
             size="small"
-            onClick={handleClearHistory}
-            startIcon={<DeleteIcon />}
+            sx={{
+              '& .MuiToggleButton-root': {
+                borderRadius: '8px',
+                textTransform: 'none',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                px: 2,
+                py: 0.75,
+                border: '1px solid',
+                borderColor: 'divider',
+                color: 'text.secondary',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: '#ffffff',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                  },
+                },
+              },
+            }}
           >
-            Clear All
-          </Button>
+            <ToggleButton value="all">
+              All
+            </ToggleButton>
+            <ToggleButton value="translate" startIcon={<TranslateIcon fontSize="small" />}>
+              Translate
+            </ToggleButton>
+            <ToggleButton value="polish" startIcon={<AutoFixHighIcon fontSize="small" />}>
+              Polish
+            </ToggleButton>
+          </ToggleButtonGroup>
         )}
       </Box>
 
-      {/* Filter */}
-      {history.length > 0 && (
-        <ButtonGroup variant="outlined" size="small" fullWidth sx={{ mb: 2 }}>
-          <Button
-            variant={filter === 'all' ? 'contained' : 'outlined'}
-            onClick={() => setFilter('all')}
+      {/* Scrollable Content */}
+      <Box sx={{ flex: 1, overflowY: 'auto', p: 3, pt: 2 }}>
+        {filteredHistory.length === 0 ? (
+          <Card
+            variant="outlined"
+            sx={{
+              textAlign: 'center',
+              py: 6,
+              bgcolor: 'background.paper',
+              borderColor: 'divider',
+            }}
           >
-            All
-          </Button>
-          <Button
-            variant={filter === 'translate' ? 'contained' : 'outlined'}
-            onClick={() => setFilter('translate')}
-            startIcon={<TranslateIcon />}
-          >
-            Translate
-          </Button>
-          <Button
-            variant={filter === 'polish' ? 'contained' : 'outlined'}
-            onClick={() => setFilter('polish')}
-            startIcon={<AutoFixHighIcon />}
-          >
-            Polish
-          </Button>
-        </ButtonGroup>
-      )}
+            <HistoryIcon
+              sx={{
+                fontSize: 48,
+                color: 'text.disabled',
+                mb: 2,
+              }}
+            />
+            <Typography variant="body2" color="text.secondary">
+              {history.length === 0
+                ? 'No history yet. Start translating or polishing text!'
+                : 'No entries match the current filter.'}
+            </Typography>
+          </Card>
+        ) : (
+          <Box display="flex" flexDirection="column" gap={2}>
+            {filteredHistory.map((entry, index) => (
+              <Card
+                key={entry.id}
+                sx={{
+                  bgcolor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: '16px',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    boxShadow: (theme) => `0 4px 12px ${theme.palette.mode === 'dark' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(99, 102, 241, 0.1)'}`,
+                    transform: 'translateY(-2px)',
+                  },
+                }}
+              >
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" gap={1.5}>
+                    <Box flex={1} minWidth={0}>
+                      {/* Header */}
+                      <Box display="flex" alignItems="center" gap={1} mb={1.5}>
+                        <Chip
+                          icon={entry.type === 'translate' ? <TranslateIcon fontSize="small" /> : <AutoFixHighIcon fontSize="small" />}
+                          label={entry.type}
+                          size="small"
+                          color={getEntryColor(entry.type)}
+                          sx={{
+                            height: 24,
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            borderRadius: '6px',
+                            '& .MuiChip-icon': {
+                              fontSize: '0.8rem',
+                            },
+                          }}
+                        />
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: '0.7rem' }}
+                        >
+                          {formatTimestamp(entry.timestamp)}
+                        </Typography>
+                      </Box>
 
-      {/* History List */}
-      {filteredHistory.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <HistoryIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-          <Typography color="text.secondary">
-            {history.length === 0
-              ? 'No history yet. Start translating or polishing text!'
-              : 'No entries match the current filter.'}
-          </Typography>
-        </Paper>
-      ) : (
-        <Box display="flex" flexDirection="column" gap={1}>
-          {filteredHistory.map((entry) => (
-            <Card key={entry.id} variant="outlined">
-              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Box display="flex" justifyContent="space-between" alignItems="flex-start" gap={1}>
-                  <Box flex={1} minWidth={0}>
-                    {/* Header */}
-                    <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <Chip
-                        icon={getEntryIcon(entry.type)}
-                        label={entry.type}
-                        size="small"
-                        color={getEntryColor(entry.type)}
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        {formatTimestamp(entry.timestamp)}
-                      </Typography>
+                      {/* Original */}
+                      <Box mb={1}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: '0.7rem', fontWeight: 500, mb: 0.3, display: 'block' }}
+                        >
+                          Original
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontSize: '0.875rem',
+                            color: 'text.secondary',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {truncateText(entry.original, 70)}
+                        </Typography>
+                      </Box>
+
+                      {/* Processed */}
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: '0.7rem', fontWeight: 500, mb: 0.3, display: 'block' }}
+                        >
+                          Result
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontSize: '0.875rem',
+                            color: entry.type === 'translate' ? 'primary.main' : 'secondary.main',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {truncateText(entry.processed, 70)}
+                        </Typography>
+                      </Box>
                     </Box>
 
-                    {/* Original */}
-                    <Box mb={1}>
-                      <Typography variant="caption" color="text.secondary" fontWeight="medium">
-                        Original:
-                      </Typography>
-                      <Typography variant="body2" noWrap>
-                        {truncateText(entry.original, 80)}
-                      </Typography>
-                    </Box>
-
-                    {/* Processed */}
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" fontWeight="medium">
-                        Result:
-                      </Typography>
-                      <Typography variant="body2" noWrap>
-                        {truncateText(entry.processed, 80)}
-                      </Typography>
-                    </Box>
+                    {/* Copy button */}
+                    <IconButton
+                      size="small"
+                      onClick={() => handleCopy(entry.processed, entry.id)}
+                      sx={{
+                        bgcolor: copiedId === entry.id ? 'success.main' : 'action.hover',
+                        color: copiedId === entry.id ? '#ffffff' : 'text.primary',
+                        borderRadius: '8px',
+                        flexShrink: 0,
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          bgcolor: copiedId === entry.id ? 'success.dark' : 'action.selected',
+                        },
+                      }}
+                      title={copiedId === entry.id ? 'Copied!' : 'Copy result'}
+                    >
+                      {copiedId === entry.id ? <CheckIcon fontSize="small" /> : <CopyIcon fontSize="small" />}
+                    </IconButton>
                   </Box>
-
-                  {/* Actions */}
-                  <IconButton
-                    size="small"
-                    onClick={() => handleCopy(entry.processed, entry.id)}
-                    title="Copy result"
-                  >
-                    {copiedId === entry.id ? (
-                      <CheckIcon color="success" fontSize="small" />
-                    ) : (
-                      <CopyIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
-      )}
-    </Container>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
+      </Box>
+    </Box>
   );
 }
