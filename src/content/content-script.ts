@@ -1,5 +1,5 @@
-import type { InputElementInfo } from '../domain/types.js';
 import { triggerDetector } from '../domain/services/TriggerDetector.js';
+import type { InputElementInfo } from '../domain/types.js';
 import { TextSelectionHandler } from './TextSelectionHandler.js';
 
 /**
@@ -12,7 +12,7 @@ export class InputHandler {
     triggerPolish: string;
   } = {
     triggerTranslate: '   ',
-    triggerPolish: '   ',
+    triggerPolish: '///',
   };
 
   constructor() {
