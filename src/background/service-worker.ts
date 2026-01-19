@@ -113,7 +113,7 @@ class ServiceWorker {
    * Process text for translation or polish
    */
   private async processText(payload: ProcessTextPayload): Promise<{ result: string }> {
-    const { text, type } = payload;
+    const { text, type, elementInfo } = payload;
 
     if (!this.currentConfig || !this.llmClient) {
       throw new Error('Extension not properly configured');
@@ -138,10 +138,10 @@ class ServiceWorker {
         processed: result,
         type,
         timestamp: Date.now(),
-        metadata: {
-          url: payload.elementInfo?.url,
-          elementSelector: payload.elementInfo?.elementSelector,
-        },
+        metadata: elementInfo ? {
+          url: elementInfo.url,
+          elementSelector: elementInfo.elementSelector,
+        } : undefined,
       };
 
       await this.historyRepository.addEntry(historyEntry);
