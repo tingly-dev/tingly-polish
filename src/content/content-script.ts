@@ -1,5 +1,6 @@
 import type { InputElementInfo } from '../domain/types.js';
 import { triggerDetector } from '../domain/services/TriggerDetector.js';
+import { TextSelectionHandler } from './TextSelectionHandler.js';
 
 /**
  * Handles input element monitoring and text replacement
@@ -282,29 +283,60 @@ export class InputHandler {
   }
 
   /**
-   * Show loading indicator
+   * Show loading indicator near the input element
    */
   private showLoadingIndicator(element: HTMLElement): void {
     // Remove existing indicator
     this.hideLoadingIndicator();
 
+    const rect = element.getBoundingClientRect();
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
+
     // Create new indicator
     const indicator = document.createElement('div');
     indicator.id = 'tingly-polish-loading';
-    indicator.textContent = 'Processing...';
+    indicator.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+        <path d="M12 2a10 10 0 0 1 10 10" stroke-opacity="1"/>
+      </svg>
+      <span>Processing...</span>
+    `;
+
+    // Position indicator below the input element
+    const left = rect.left + scrollX;
+    const top = rect.bottom + scrollY + 8;
+
     indicator.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #000;
-      color: #fff;
-      padding: 12px 24px;
+      position: absolute;
+      left: ${left}px;
+      top: ${top}px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 8px 16px;
       border-radius: 8px;
       z-index: 999999;
-      font-family: system-ui, -apple-system, sans-serif;
-      font-size: 14px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.3);
+      pointer-events: none;
     `;
+
+    // Add animation keyframes for spinner
+    const style = document.createElement('style');
+    style.id = 'tingly-polish-loading-style';
+    style.textContent = `
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
 
     document.body.appendChild(indicator);
   }
@@ -317,6 +349,10 @@ export class InputHandler {
     if (existing) {
       existing.remove();
     }
+    const style = document.getElementById('tingly-polish-loading-style');
+    if (style) {
+      style.remove();
+    }
   }
 }
 
@@ -324,9 +360,11 @@ export class InputHandler {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     new InputHandler();
+    new TextSelectionHandler();
   });
 } else {
   new InputHandler();
+  new TextSelectionHandler();
 }
 
 // Re-initialize on page navigation (for SPAs)
@@ -338,6 +376,7 @@ new MutationObserver(() => {
     // Re-initialize for new page
     setTimeout(() => {
       new InputHandler();
+      new TextSelectionHandler();
     }, 100);
   }
 }).observe(document.body, { childList: true, subtree: true });
