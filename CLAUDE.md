@@ -161,3 +161,4 @@ test('popup loads', async ({ context }) => {
 - Content script monitors inputs for triple-space trigger pattern
 - Mock LLM client available for development without API keys
 - History limited to 100 entries, stored locally
+- Run `pnpm build` after task done
