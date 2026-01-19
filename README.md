@@ -17,11 +17,11 @@ A Chrome extension that provides AI-powered translation and text polishing for w
 ### Development Setup
 
 ```bash
-# Install dependencies
-npm install
+# Install dependencies (requires pnpm)
+pnpm install
 
 # Build the extension
-npm run build
+pnpm build
 
 # Load in Chrome
 1. Go to chrome://extensions/
@@ -34,7 +34,7 @@ npm run build
 
 ```bash
 # Watch mode for development
-npm run dev
+pnpm dev
 ```
 
 ## Usage
@@ -102,16 +102,16 @@ src/
 
 ```bash
 # Run unit tests
-npm test
+pnpm test
 
 # Run tests with UI
-npm run test:ui
+pnpm test:ui
 
 # Run tests with coverage
-npm run test:coverage
+pnpm test:coverage
 
 # Run E2E tests
-npm run test:e2e
+pnpm test:e2e
 ```
 
 ## Default Prompts
@@ -146,22 +146,22 @@ Only return the improved text, no explanations.
 ### Tech Stack
 - React 18 + TypeScript
 - Vite for building
-- TailwindCSS + shadcn/ui for styling
+- MUI (Material-UI) for UI components
 - Vitest for unit testing
 - Playwright for E2E testing
 - OpenAI SDK for LLM integration
+- pnpm as package manager
 
 ### Build Commands
 ```bash
-npm run build          # Production build
-npm run build:popup    # Build popup only
-npm run dev            # Development watch mode
+pnpm build            # Production build
+pnpm dev              # Development watch mode
 ```
 
 ### Code Quality
 ```bash
-npm run lint           # Lint code
-npm run type-check     # TypeScript type checking
+pnpm lint            # Lint code
+pnpm type-check      # TypeScript type checking
 ```
 
 ## Privacy

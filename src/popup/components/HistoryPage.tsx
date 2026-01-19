@@ -1,4 +1,26 @@
-import { useState, useEffect } from 'react';
+import * as React from 'react';
+import {
+  Box,
+  Container,
+  Paper,
+  Typography,
+  Button,
+  ButtonGroup,
+  Card,
+  CardContent,
+  Chip,
+  IconButton,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
+import {
+  Delete as DeleteIcon,
+  ContentCopy as CopyIcon,
+  Check as CheckIcon,
+  History as HistoryIcon,
+  Translate as TranslateIcon,
+  AutoFixHigh as AutoFixHighIcon,
+} from '@mui/icons-material';
 import type { HistoryEntry } from '../../domain/types';
 import {
   getHistory,
@@ -7,17 +29,14 @@ import {
   formatTimestamp,
   truncateText,
 } from '../lib/api';
-import { Button } from './ui/Button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/Card';
-import { Trash2, Copy, Check } from 'lucide-react';
 
 export function HistoryPage() {
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'translate' | 'polish'>('all');
+  const [history, setHistory] = React.useState<HistoryEntry[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [copiedId, setCopiedId] = React.useState<string | null>(null);
+  const [filter, setFilter] = React.useState<'all' | 'translate' | 'polish'>('all');
 
-  useEffect(() => {
+  React.useEffect(() => {
     loadHistory();
   }, []);
 
@@ -56,135 +75,142 @@ export function HistoryPage() {
     return entry.type === filter;
   });
 
+  const getEntryIcon = (type: 'translate' | 'polish') => {
+    return type === 'translate' ? <TranslateIcon /> : <AutoFixHighIcon />;
+  };
+
+  const getEntryColor = (type: 'translate' | 'polish') => {
+    return type === 'translate' ? 'primary' : 'secondary';
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
+      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+        <CircularProgress />
+      </Box>
     );
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <Container maxWidth="sm" disableGutters>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">History</h2>
-          <p className="text-sm text-muted-foreground">
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Box>
+          <Typography variant="h6" fontWeight="bold">
+            History
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
             {filteredHistory.length} {filteredHistory.length === 1 ? 'entry' : 'entries'}
-          </p>
-        </div>
+          </Typography>
+        </Box>
         {history.length > 0 && (
           <Button
-            variant="destructive"
-            size="sm"
+            variant="outlined"
+            color="error"
+            size="small"
             onClick={handleClearHistory}
+            startIcon={<DeleteIcon />}
           >
-            <Trash2 className="w-4 h-4 mr-1" />
             Clear All
           </Button>
         )}
-      </div>
+      </Box>
 
       {/* Filter */}
       {history.length > 0 && (
-        <div className="flex gap-2">
+        <ButtonGroup variant="outlined" size="small" fullWidth sx={{ mb: 2 }}>
           <Button
-            variant={filter === 'all' ? 'default' : 'outline'}
-            size="sm"
+            variant={filter === 'all' ? 'contained' : 'outlined'}
             onClick={() => setFilter('all')}
           >
             All
           </Button>
           <Button
-            variant={filter === 'translate' ? 'default' : 'outline'}
-            size="sm"
+            variant={filter === 'translate' ? 'contained' : 'outlined'}
             onClick={() => setFilter('translate')}
+            startIcon={<TranslateIcon />}
           >
             Translate
           </Button>
           <Button
-            variant={filter === 'polish' ? 'default' : 'outline'}
-            size="sm"
+            variant={filter === 'polish' ? 'contained' : 'outlined'}
             onClick={() => setFilter('polish')}
+            startIcon={<AutoFixHighIcon />}
           >
             Polish
           </Button>
-        </div>
+        </ButtonGroup>
       )}
 
       {/* History List */}
       {filteredHistory.length === 0 ? (
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center text-muted-foreground">
-              {history.length === 0
-                ? 'No history yet. Start translating or polishing text!'
-                : 'No entries match the current filter.'}
-            </div>
-          </CardContent>
-        </Card>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <HistoryIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+          <Typography color="text.secondary">
+            {history.length === 0
+              ? 'No history yet. Start translating or polishing text!'
+              : 'No entries match the current filter.'}
+          </Typography>
+        </Paper>
       ) : (
-        <div className="space-y-3">
+        <Box display="flex" flexDirection="column" gap={1}>
           {filteredHistory.map((entry) => (
-            <Card key={entry.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0 space-y-2">
+            <Card key={entry.id} variant="outlined">
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Box display="flex" justifyContent="space-between" alignItems="flex-start" gap={1}>
+                  <Box flex={1} minWidth={0}>
                     {/* Header */}
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded ${
-                          entry.type === 'translate'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-purple-100 text-purple-700'
-                        }`}
-                      >
-                        {entry.type}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
+                    <Box display="flex" alignItems="center" gap={1} mb={1}>
+                      <Chip
+                        icon={getEntryIcon(entry.type)}
+                        label={entry.type}
+                        size="small"
+                        color={getEntryColor(entry.type)}
+                      />
+                      <Typography variant="caption" color="text.secondary">
                         {formatTimestamp(entry.timestamp)}
-                      </span>
-                    </div>
+                      </Typography>
+                    </Box>
 
                     {/* Original */}
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">
+                    <Box mb={1}>
+                      <Typography variant="caption" color="text.secondary" fontWeight="medium">
                         Original:
-                      </p>
-                      <p className="text-sm">{truncateText(entry.original, 100)}</p>
-                    </div>
+                      </Typography>
+                      <Typography variant="body2" noWrap>
+                        {truncateText(entry.original, 80)}
+                      </Typography>
+                    </Box>
 
                     {/* Processed */}
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight="medium">
                         Result:
-                      </p>
-                      <p className="text-sm">{truncateText(entry.processed, 100)}</p>
-                    </div>
-                  </div>
+                      </Typography>
+                      <Typography variant="body2" noWrap>
+                        {truncateText(entry.processed, 80)}
+                      </Typography>
+                    </Box>
+                  </Box>
 
                   {/* Actions */}
-                  <div className="flex flex-col gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCopy(entry.processed, entry.id)}
-                      title="Copy result"
-                    >
-                      {copiedId === entry.id ? (
-                        <Check className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleCopy(entry.processed, entry.id)}
+                    title="Copy result"
+                  >
+                    {copiedId === entry.id ? (
+                      <CheckIcon color="success" fontSize="small" />
+                    ) : (
+                      <CopyIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </Box>
               </CardContent>
             </Card>
           ))}
-        </div>
+        </Box>
       )}
-    </div>
+    </Container>
   );
 }
