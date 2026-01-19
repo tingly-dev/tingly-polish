@@ -9,6 +9,8 @@ export class TextSelectionHandler {
   } = {
     targetLanguage: 'English',
   };
+  private currentInputElement: HTMLInputElement | HTMLTextAreaElement | null = null;
+  private selectionRange: { start: number; end: number } | null = null;
 
   constructor() {
     this.loadConfig();
@@ -54,37 +56,59 @@ export class TextSelectionHandler {
     document.addEventListener('selectionchange', () => {
       this.handleSelection();
     });
+
+    // Also listen for select event on input/textarea elements
+    document.addEventListener('select', (e) => {
+      const target = e.target;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        console.log('Tingly Polish: Select event on input', { tagName: target.tagName });
+        this.handleSelection();
+      }
+    }, true); // Use capture phase
+
+    // Listen for keyup events that might change selection in input/textarea
+    document.addEventListener('keyup', (e) => {
+      const target = e.target;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        // Only handle shift + arrow keys which create selections
+        if (e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight' ||
+                          e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
+                          e.key === 'Home' || e.key === 'End')) {
+          console.log('Tingly Polish: Keyup selection on input', { key: e.key });
+          this.handleSelection();
+        }
+      }
+    }, true);
   }
 
   private handleSelection(): void {
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed) {
-      this.scheduleHide();
-      return;
-    }
-
-    const selectedText = selection.toString().trim();
-    if (!selectedText || selectedText.length < 2) {
-      this.scheduleHide();
-      return;
-    }
-
-    // Don't show if selection is in input/textarea (they have their own handling)
+    // First check if we have selection in input/textarea
     const activeElement = document.activeElement;
-    if (
-      activeElement instanceof HTMLInputElement ||
-      activeElement instanceof HTMLTextAreaElement
-    ) {
+
+    if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
+      const start = activeElement.selectionStart ?? 0;
+      const end = activeElement.selectionEnd ?? 0;
+
+      if (start !== end) {
+        const selectedText = activeElement.value.substring(start, end).trim();
+        if (selectedText.length >= 2) {
+          // Save reference to the input element and selection range
+          this.currentInputElement = activeElement;
+          this.selectionRange = { start, end };
+          this.showFloatingButton(selectedText);
+          return;
+        }
+      }
+
+      // Clear references if no valid selection
+      this.currentInputElement = null;
+      this.selectionRange = null;
       this.scheduleHide();
       return;
     }
 
-    // Don't show if selection is in our own popup
-    if (this.floatingButton?.contains(selection.anchorNode)) {
-      return;
-    }
-
-    this.showFloatingButton(selectedText);
+    // For regular text, don't show the button
+    this.scheduleHide();
   }
 
   private showFloatingButton(text: string): void {
@@ -108,16 +132,8 @@ export class TextSelectionHandler {
     const button = document.createElement('div');
     button.id = 'tingly-polish-floating-button';
     button.innerHTML = `
-      <button class="tingly-action-btn tingly-translate-btn" title="Translate">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M5 8l6 6M5 14l6-6M12 2h2M20 2h2M19 8l6 6M19 14l6-6"/>
-        </svg>
-      </button>
-      <button class="tingly-action-btn tingly-polish-btn" title="Polish">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-        </svg>
-      </button>
+      <button class="tingly-action-btn tingly-translate-btn" title="Translate">T</button>
+      <button class="tingly-action-btn tingly-polish-btn" title="Polish">P</button>
       <button class="tingly-close-btn" title="Close">×</button>
     `;
 
@@ -151,6 +167,9 @@ export class TextSelectionHandler {
         transition: all 0.15s ease;
         color: #e2e8f0;
         padding: 0;
+        font-size: 16px;
+        font-weight: 600;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       }
 
       #tingly-polish-floating-button .tingly-action-btn:hover {
@@ -213,6 +232,29 @@ export class TextSelectionHandler {
   private positionFloatingButton(): void {
     if (!this.floatingButton) return;
 
+    // Check if we're positioning for an input/textarea element
+    const activeElement = document.activeElement;
+
+    if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
+      const rect = activeElement.getBoundingClientRect();
+      const buttonWidth = 140;
+      const buttonHeight = 48;
+
+      // Position button above the input element
+      let left = rect.left + rect.width / 2 - buttonWidth / 2;
+      let top = rect.top - buttonHeight - 8;
+
+      // Keep button within viewport bounds
+      const padding = 16;
+      left = Math.max(padding, Math.min(left, window.innerWidth - buttonWidth - padding));
+      top = Math.max(padding, Math.min(top, window.innerHeight - buttonHeight - padding));
+
+      this.floatingButton.style.left = `${left + window.scrollX}px`;
+      this.floatingButton.style.top = `${top + window.scrollY}px`;
+      return;
+    }
+
+    // Handle regular text selection
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
 
@@ -257,14 +299,14 @@ export class TextSelectionHandler {
     const selectedText = this.floatingButton.dataset.selectedText;
     if (!selectedText) return;
 
-    // Hide button
-    this.hideFloatingButton();
+    console.log('Tingly Polish: Processing selected text', { type, selectedText });
 
     try {
-      // Show loading
+      // Show loading state on the button
       this.showLoading();
 
       // Send to background for processing
+      console.log('Tingly Polish: Sending PROCESS_TEXT message');
       const response = await chrome.runtime.sendMessage({
         type: 'PROCESS_TEXT',
         payload: {
@@ -273,9 +315,15 @@ export class TextSelectionHandler {
         },
       });
 
+      console.log('Tingly Polish: Received response', response);
+
       if (response?.data?.result) {
         // Replace the selected text
         this.replaceSelectedText(response.data.result);
+        // Hide button after successful replacement
+        this.hideFloatingButton();
+      } else {
+        console.error('Tingly Polish: No result in response', response);
       }
     } catch (error) {
       console.error('Tingly Polish: Failed to process selected text', error);
@@ -286,15 +334,48 @@ export class TextSelectionHandler {
   }
 
   private replaceSelectedText(text: string): void {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
+    // Use the saved input element reference
+    const inputElement = this.currentInputElement;
+    const range = this.selectionRange;
 
-    const range = selection.getRangeAt(0);
-    range.deleteContents();
-    range.insertNode(document.createTextNode(text));
+    // Handle input and textarea elements
+    if (inputElement && range) {
+      const currentValue = inputElement.value;
 
-    // Clear selection
-    selection.removeAllRanges();
+      // Replace selected text with new text
+      inputElement.value = currentValue.substring(0, range.start) + text + currentValue.substring(range.end);
+
+      // Update cursor position
+      const newPosition = range.start + text.length;
+      inputElement.selectionStart = inputElement.selectionEnd = newPosition;
+
+      // Trigger input event
+      inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Clear references
+      this.currentInputElement = null;
+      this.selectionRange = null;
+      return;
+    }
+
+    // Fallback: try to use active element
+    const activeElement = document.activeElement;
+
+    if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
+      const start = activeElement.selectionStart ?? 0;
+      const end = activeElement.selectionEnd ?? 0;
+      const currentValue = activeElement.value;
+
+      // Replace selected text with new text
+      activeElement.value = currentValue.substring(0, start) + text + currentValue.substring(end);
+
+      // Update cursor position
+      activeElement.selectionStart = activeElement.selectionEnd = start + text.length;
+
+      // Trigger input event
+      activeElement.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
   }
 
   private showLoading(): void {
@@ -312,6 +393,3 @@ export class TextSelectionHandler {
     }
   }
 }
-
-// Initialize
-new TextSelectionHandler();
