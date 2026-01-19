@@ -24,6 +24,7 @@ import {
   updateConfig,
   resetConfig,
 } from '../lib/api';
+import { TriggerKeys } from './TriggerKeys';
 
 export function AIConfigPage() {
   const [config, setConfig] = React.useState<Config>({
@@ -235,24 +236,18 @@ export function AIConfigPage() {
                 borderColor: 'divider',
               }}
             >
-              <Box display="flex" flexDirection="column" gap={2}>
-                <TextField
+              <Box display="flex" flexDirection="column" gap={2.5}>
+                <TriggerKeys
                   label="Translation Trigger"
                   value={config.triggerTranslate}
-                  onChange={(e) => updateField('triggerTranslate', e.target.value)}
-                  placeholder="   (triple space)"
-                  fullWidth
-                  size="small"
-                  helperText="Type this pattern in an input to trigger translation"
+                  onChange={(value) => updateField('triggerTranslate', value)}
+                  helperText="Click keys to set the pattern that triggers translation"
                 />
-                <TextField
+                <TriggerKeys
                   label="Polish Trigger"
                   value={config.triggerPolish}
-                  onChange={(e) => updateField('triggerPolish', e.target.value)}
-                  placeholder="   (triple space)"
-                  fullWidth
-                  size="small"
-                  helperText="Type this pattern in an input to trigger polish"
+                  onChange={(value) => updateField('triggerPolish', value)}
+                  helperText="Click keys to set the pattern that triggers polish"
                 />
                 <TextField
                   select
