@@ -13,21 +13,54 @@ import {
   Translate as TranslateIcon,
   AutoFixHigh as AutoFixHighIcon,
   Restore as RestoreIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import type { Config } from '../../domain/types';
 import { getConfig, updateConfig } from '../lib/api';
 import { useAutoSave } from '../hooks/useAutoSave';
+import { useSettingsContext } from '../contexts/SettingsContext';
 import { DEFAULT_CONFIG } from '../../domain/types';
+
+const SECTION_ID = 'prompts';
 
 export function PromptsSection() {
   const [config, setConfig] = React.useState<Config | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState<{ type: 'success'; text: string } | null>(null);
+  const { registerSection, unregisterSection } = useSettingsContext();
+
+  const autoSave = useAutoSave(
+    config || ({} as Config),
+    async (updatedConfig) => {
+      await updateConfig(updatedConfig);
+      setConfig(updatedConfig);
+    },
+    {
+      autoSave: false,
+      onError: (err) => {
+        setError('Failed to save configuration');
+        setTimeout(() => setError(null), 3000);
+      },
+    }
+  );
 
   React.useEffect(() => {
     loadConfig();
   }, []);
+
+  React.useEffect(() => {
+    if (config) {
+      registerSection(SECTION_ID, {
+        save: autoSave.saveNow,
+        hasPendingChanges: autoSave.hasPendingChanges,
+      });
+    }
+
+    return () => {
+      unregisterSection(SECTION_ID);
+    };
+  }, [config, autoSave, registerSection, unregisterSection]);
 
   const loadConfig = async () => {
     try {
@@ -39,20 +72,6 @@ export function PromptsSection() {
       setLoading(false);
     }
   };
-
-  const autoSave = useAutoSave(
-    config || ({} as Config),
-    async (updatedConfig) => {
-      await updateConfig(updatedConfig);
-      setConfig(updatedConfig);
-    },
-    {
-      onError: (err) => {
-        setError('Failed to save configuration');
-        setTimeout(() => setError(null), 3000);
-      },
-    }
-  );
 
   const restorePrompt = async (field: keyof Config, fieldName: string) => {
     if (!config) return;
@@ -138,13 +157,23 @@ export function PromptsSection() {
             </Typography>
           </Box>
         </Box>
-        <Button
-          variant="outlined"
-          onClick={restoreAll}
-          startIcon={<RestoreIcon />}
-        >
-          Restore All Defaults
-        </Button>
+        <Box display="flex" gap={1.5}>
+          <Button
+            variant="outlined"
+            onClick={restoreAll}
+            startIcon={<RestoreIcon />}
+          >
+            Restore All
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={autoSave.saveNow}
+            disabled={autoSave.isSaving || !autoSave.hasPendingChanges}
+          >
+            {autoSave.isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </Box>
       </Box>
 
       {/* Success Alert */}

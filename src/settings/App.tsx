@@ -17,6 +17,7 @@ import { ApiConfigSection } from './components/ApiConfigSection';
 import { TriggersSection } from './components/TriggersSection';
 import { PromptsSection } from './components/PromptsSection';
 import { HistorySection } from './components/HistorySection';
+import { SettingsProvider, useSettingsContext } from './contexts/SettingsContext';
 import { theme } from '../popup/theme';
 
 type Section = 'api' | 'triggers' | 'prompts' | 'history';
@@ -55,38 +56,72 @@ const sections: SectionConfig[] = [
   },
 ];
 
-export function App() {
+function SettingsAppContent() {
   const [activeSection, setActiveSection] = React.useState<Section>('api');
+  const [previousSection, setPreviousSection] = React.useState<Section | null>(null);
   const [mounted, setMounted] = React.useState(false);
+  const { saveCurrentSection, getCurrentSectionState } = useSettingsContext();
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
+  const handleSectionChange = async (newSection: Section) => {
+    if (newSection === activeSection) return;
+
+    // Save current section before switching
+    if (previousSection !== null) {
+      await saveCurrentSection(activeSection);
+    }
+
+    setPreviousSection(activeSection);
+    setActiveSection(newSection);
+  };
+
+  React.useEffect(() => {
+    // Initialize previousSection after mount
+    if (mounted && previousSection === null) {
+      setPreviousSection(activeSection);
+    }
+  }, [mounted, activeSection, previousSection]);
+
   if (!mounted) return null;
 
   const currentSection = sections.find(s => s.id === activeSection);
+  const sectionState = getCurrentSectionState(activeSection);
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <SettingsLayout
-        sidebar={
-          <>
-            {sections.map((section) => (
+    <SettingsLayout
+      sidebar={
+        <>
+          {sections.map((section) => {
+            const state = getCurrentSectionState(section.id);
+            return (
               <NavItem
                 key={section.id}
                 icon={section.icon}
                 label={section.label}
                 active={activeSection === section.id}
-                onClick={() => setActiveSection(section.id)}
+                hasPendingChanges={state?.hasPendingChanges}
+                onClick={() => handleSectionChange(section.id)}
               />
-            ))}
-          </>
-        }
-      >
-        {currentSection?.component}
-      </SettingsLayout>
+            );
+          })}
+        </>
+      }
+    >
+      {currentSection?.component}
+    </SettingsLayout>
+  );
+}
+
+export function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <SettingsProvider>
+        <SettingsAppContent />
+      </SettingsProvider>
     </ThemeProvider>
   );
 }

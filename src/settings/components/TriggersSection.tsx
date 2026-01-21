@@ -7,24 +7,58 @@ import {
   CircularProgress,
   Alert,
   Collapse,
+  Button,
 } from '@mui/material';
 import {
   Keyboard as KeyboardIcon,
   Translate as TranslateIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import type { Config } from '../../domain/types';
 import { getConfig, updateConfig } from '../lib/api';
 import { useAutoSave } from '../hooks/useAutoSave';
+import { useSettingsContext } from '../contexts/SettingsContext';
 import { TriggerKeys } from '../../popup/components/TriggerKeys';
+
+const SECTION_ID = 'triggers';
 
 export function TriggersSection() {
   const [config, setConfig] = React.useState<Config | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const { registerSection, unregisterSection } = useSettingsContext();
+
+  const autoSave = useAutoSave(
+    config || ({} as Config),
+    async (updatedConfig) => {
+      await updateConfig(updatedConfig);
+      setConfig(updatedConfig);
+    },
+    {
+      autoSave: false,
+      onError: (err) => {
+        setError('Failed to save configuration');
+        setTimeout(() => setError(null), 3000);
+      },
+    }
+  );
 
   React.useEffect(() => {
     loadConfig();
   }, []);
+
+  React.useEffect(() => {
+    if (config) {
+      registerSection(SECTION_ID, {
+        save: autoSave.saveNow,
+        hasPendingChanges: autoSave.hasPendingChanges,
+      });
+    }
+
+    return () => {
+      unregisterSection(SECTION_ID);
+    };
+  }, [config, autoSave, registerSection, unregisterSection]);
 
   const loadConfig = async () => {
     try {
@@ -36,20 +70,6 @@ export function TriggersSection() {
       setLoading(false);
     }
   };
-
-  const autoSave = useAutoSave(
-    config || ({} as Config),
-    async (updatedConfig) => {
-      await updateConfig(updatedConfig);
-      setConfig(updatedConfig);
-    },
-    {
-      onError: (err) => {
-        setError('Failed to save configuration');
-        setTimeout(() => setError(null), 3000);
-      },
-    }
-  );
 
   if (loading) {
     return (
@@ -111,6 +131,14 @@ export function TriggersSection() {
             </Typography>
           </Box>
         </Box>
+        <Button
+          variant="contained"
+          startIcon={<SaveIcon />}
+          onClick={autoSave.saveNow}
+          disabled={autoSave.isSaving || !autoSave.hasPendingChanges}
+        >
+          {autoSave.isSaving ? 'Saving...' : 'Save'}
+        </Button>
       </Box>
 
       {/* Error Alert */}

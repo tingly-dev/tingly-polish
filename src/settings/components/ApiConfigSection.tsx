@@ -3,29 +3,63 @@ import {
   Box,
   Typography,
   TextField,
-  MenuItem,
   FormControlLabel,
   Switch,
   CircularProgress,
   Alert,
   Collapse,
+  Button,
 } from '@mui/material';
 import {
   Cloud as CloudIcon,
   Settings as SettingsIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import type { Config } from '../../domain/types';
 import { getConfig, updateConfig } from '../lib/api';
 import { useAutoSave } from '../hooks/useAutoSave';
+import { useSettingsContext } from '../contexts/SettingsContext';
+
+const SECTION_ID = 'api';
 
 export function ApiConfigSection() {
   const [config, setConfig] = React.useState<Config | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const { registerSection, unregisterSection } = useSettingsContext();
+
+  const autoSave = useAutoSave(
+    config || ({} as Config),
+    async (updatedConfig) => {
+      await updateConfig(updatedConfig);
+      setConfig(updatedConfig);
+    },
+    {
+      autoSave: false, // Disable auto-save, only save manually or on tab switch
+      onError: (err) => {
+        setError('Failed to save configuration');
+        setTimeout(() => setError(null), 3000);
+      },
+    }
+  );
 
   React.useEffect(() => {
     loadConfig();
   }, []);
+
+  // Register this section with the context
+  React.useEffect(() => {
+    if (config) {
+      registerSection(SECTION_ID, {
+        save: autoSave.saveNow,
+        hasPendingChanges: autoSave.hasPendingChanges,
+      });
+    }
+
+    return () => {
+      unregisterSection(SECTION_ID);
+    };
+  }, [config, autoSave, registerSection, unregisterSection]);
 
   const loadConfig = async () => {
     try {
@@ -37,20 +71,6 @@ export function ApiConfigSection() {
       setLoading(false);
     }
   };
-
-  const autoSave = useAutoSave(
-    config || ({} as Config),
-    async (updatedConfig) => {
-      await updateConfig(updatedConfig);
-      setConfig(updatedConfig);
-    },
-    {
-      onError: (err) => {
-        setError('Failed to save configuration');
-        setTimeout(() => setError(null), 3000);
-      },
-    }
-  );
 
   if (loading) {
     return (
@@ -112,6 +132,14 @@ export function ApiConfigSection() {
             </Typography>
           </Box>
         </Box>
+        <Button
+          variant="contained"
+          startIcon={<SaveIcon />}
+          onClick={autoSave.saveNow}
+          disabled={autoSave.isSaving || !autoSave.hasPendingChanges}
+        >
+          {autoSave.isSaving ? 'Saving...' : 'Save'}
+        </Button>
       </Box>
 
       {/* Error Alert */}
@@ -173,14 +201,7 @@ export function ApiConfigSection() {
                   placeholder="gpt-4o-mini"
                   fullWidth
                   size="small"
-                  select
-                >
-                  {['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo', 'claude-3-haiku', 'claude-3.5-sonnet'].map((model) => (
-                    <MenuItem key={model} value={model}>
-                      {model}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                />
                 <FormControlLabel
                   control={
                     <Switch

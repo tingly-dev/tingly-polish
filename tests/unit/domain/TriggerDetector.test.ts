@@ -17,13 +17,13 @@ describe('TriggerDetector', () => {
   });
 
   describe('detect', () => {
-    it('should detect triple space trigger', () => {
-      const result = detector.detect('hello   ', '   ', 'translate');
+    it('should detect trigger at the end', () => {
+      const result = detector.detect('hello world   ', '   ', 'translate');
 
       expect(result.detected).toBe(true);
       expect(result.type).toBe('translate');
       expect(result.matchedText).toBe('   ');
-      expect(result.remainingText).toBe('hello ');
+      expect(result.remainingText).toBe('hello world');
     });
 
     it('should not detect trigger when pattern not present', () => {
@@ -38,25 +38,45 @@ describe('TriggerDetector', () => {
       expect(result.detected).toBe(false);
     });
 
-    it('should detect trigger at the beginning', () => {
+    it('should NOT detect trigger at the beginning', () => {
       const result = detector.detect('   hello', '   ', 'translate');
 
-      expect(result.detected).toBe(true);
-      expect(result.remainingText).toBe(' hello');
+      expect(result.detected).toBe(false);
     });
 
-    it('should detect trigger in the middle', () => {
+    it('should NOT detect trigger in the middle', () => {
       const result = detector.detect('hello   world', '   ', 'translate');
 
-      expect(result.detected).toBe(true);
-      expect(result.remainingText).toBe('hello world');
+      expect(result.detected).toBe(false);
     });
 
-    it('should only detect the last occurrence', () => {
+    it('should detect trigger at the end even if also present in middle', () => {
       const result = detector.detect('hello   world   ', '   ', 'translate');
 
       expect(result.detected).toBe(true);
-      expect(result.remainingText).toBe('hello   world ');
+      expect(result.remainingText).toBe('hello   world');
+    });
+
+    it('should detect polish trigger pattern', () => {
+      const result = detector.detect('text to polish///', '///', 'polish');
+
+      expect(result.detected).toBe(true);
+      expect(result.type).toBe('polish');
+      expect(result.matchedText).toBe('///');
+      expect(result.remainingText).toBe('text to polish');
+    });
+
+    it('should NOT detect polish trigger in middle', () => {
+      const result = detector.detect('///text to polish', '///', 'polish');
+
+      expect(result.detected).toBe(false);
+    });
+
+    it('should handle pattern-only input', () => {
+      const result = detector.detect('   ', '   ', 'translate');
+
+      expect(result.detected).toBe(true);
+      expect(result.remainingText).toBe('');
     });
   });
 

@@ -1,15 +1,17 @@
 import * as React from 'react';
 import { Box, SxProps, Theme } from '@mui/material';
+import { Circle as CircleIcon } from '@mui/icons-material';
 
 export interface NavItemProps {
   icon: React.ReactNode;
   label: string;
   active: boolean;
+  hasPendingChanges?: boolean;
   onClick: () => void;
   sx?: SxProps<Theme>;
 }
 
-export function NavItem({ icon, label, active, onClick, sx }: NavItemProps) {
+export function NavItem({ icon, label, active, hasPendingChanges, onClick, sx }: NavItemProps) {
   return (
     <Box
       onClick={onClick}
@@ -38,10 +40,22 @@ export function NavItem({ icon, label, active, onClick, sx }: NavItemProps) {
           fontSize: '0.875rem',
           fontWeight: 600,
           letterSpacing: '0.01em',
+          flex: 1,
         }}
       >
         {label}
       </Box>
+      {hasPendingChanges && (
+        <CircleIcon
+          sx={{
+            width: 8,
+            height: 8,
+            fontSize: 'inherit',
+            bgcolor: active ? 'warning.light' : 'warning.main',
+            color: active ? 'warning.light' : 'warning.main',
+          }}
+        />
+      )}
     </Box>
   );
 }

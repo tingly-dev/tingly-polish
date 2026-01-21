@@ -8,7 +8,7 @@ export class TriggerDetector {
   private debounceTimers: Map<HTMLElement, NodeJS.Timeout> = new Map();
 
   /**
-   * Detect if trigger pattern is present in text
+   * Detect if trigger pattern is present at the END of text
    * @param text - Input text to check
    * @param triggerPattern - Pattern to detect (e.g., '   ' for triple space)
    * @param type - Type of trigger (translate or polish)
@@ -19,20 +19,19 @@ export class TriggerDetector {
       return { detected: false };
     }
 
-    const index = text.lastIndexOf(triggerPattern);
-
-    if (index === -1) {
+    // Only trigger if pattern is at the END of the text
+    if (!text.endsWith(triggerPattern)) {
       return { detected: false };
     }
 
-    const beforeTrigger = text.substring(0, index);
-    const afterTrigger = text.substring(index + triggerPattern.length);
+    // Remove trigger pattern from the end
+    const remainingText = text.substring(0, text.length - triggerPattern.length);
 
     return {
       detected: true,
       type,
       matchedText: triggerPattern,
-      remainingText: beforeTrigger + afterTrigger,
+      remainingText,
     };
   }
 

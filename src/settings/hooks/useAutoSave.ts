@@ -2,6 +2,7 @@ import * as React from 'react';
 
 export interface UseAutoSaveOptions {
   debounceMs?: number;
+  autoSave?: boolean; // If false, only manual save is allowed
   onSave?: () => void;
   onError?: (error: unknown) => void;
 }
@@ -17,7 +18,7 @@ export function useAutoSave<T extends object>(
   saveFn: (config: T) => Promise<void>,
   options: UseAutoSaveOptions = {}
 ) {
-  const { debounceMs = 500, onSave, onError } = options;
+  const { debounceMs = 500, autoSave = true, onSave, onError } = options;
 
   const [state, setState] = React.useState<AutoSaveState>({
     isSaving: false,
@@ -77,6 +78,11 @@ export function useAutoSave<T extends object>(
 
     setState(prev => ({ ...prev, hasPendingChanges: true }));
 
+    // If autoSave is disabled, don't schedule automatic save
+    if (!autoSave) {
+      return;
+    }
+
     // Clear existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -86,9 +92,9 @@ export function useAutoSave<T extends object>(
     saveTimeoutRef.current = setTimeout(() => {
       performSave();
     }, debounceMs);
-  }, [debounceMs, performSave]);
+  }, [autoSave, debounceMs, performSave]);
 
-  // Force immediate save
+  // Force immediate save (manual save)
   const saveNow = React.useCallback(async () => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
