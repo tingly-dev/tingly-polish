@@ -1,15 +1,15 @@
 import * as React from 'react';
 
 export interface SectionSaver {
-  save: () => Promise<void>;
   hasPendingChanges: boolean;
+  save: () => Promise<void>;
+  discardChanges?: () => void;
 }
 
 interface SettingsContextValue {
   registerSection: (id: string, saver: SectionSaver) => void;
   unregisterSection: (id: string) => void;
-  saveCurrentSection: (id: string) => Promise<void>;
-  getCurrentSectionState: (id: string) => { hasPendingChanges: boolean } | null;
+  getSectionState: (id: string) => SectionSaver | null;
 }
 
 const SettingsContext = React.createContext<SettingsContextValue | undefined>(undefined);
@@ -25,25 +25,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     sectionsRef.current.delete(id);
   }, []);
 
-  const saveCurrentSection = React.useCallback(async (id: string): Promise<void> => {
-    const saver = sectionsRef.current.get(id);
-    if (saver) {
-      await saver.save();
-    }
-  }, []);
-
-  const getCurrentSectionState = React.useCallback((id: string) => {
-    const saver = sectionsRef.current.get(id);
-    if (saver) {
-      return { hasPendingChanges: saver.hasPendingChanges };
-    }
-    return null;
+  const getSectionState = React.useCallback((id: string) => {
+    return sectionsRef.current.get(id) || null;
   }, []);
 
   return (
-    <SettingsContext.Provider
-      value={{ registerSection, unregisterSection, saveCurrentSection, getCurrentSectionState }}
-    >
+    <SettingsContext.Provider value={{ registerSection, unregisterSection, getSectionState }}>
       {children}
     </SettingsContext.Provider>
   );

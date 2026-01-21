@@ -3,12 +3,19 @@ import {
   Box,
   ThemeProvider,
   CssBaseline,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
 } from '@mui/material';
 import {
   Cloud as CloudIcon,
   Keyboard as KeyboardIcon,
   Psychology as PsychologyIcon,
   History as HistoryIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import { SettingsLayout } from './components/SettingsLayout';
 import { NavItem } from './components/NavItem';
@@ -58,60 +65,120 @@ const sections: SectionConfig[] = [
 
 function SettingsAppContent() {
   const [activeSection, setActiveSection] = React.useState<Section>('api');
-  const [previousSection, setPreviousSection] = React.useState<Section | null>(null);
+  const [pendingSection, setPendingSection] = React.useState<Section | null>(null);
   const [mounted, setMounted] = React.useState(false);
-  const { saveCurrentSection, getCurrentSectionState } = useSettingsContext();
+  const { getSectionState } = useSettingsContext();
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleSectionChange = async (newSection: Section) => {
+  const handleSectionChange = (newSection: Section) => {
     if (newSection === activeSection) return;
 
-    // Save current section before switching
-    if (previousSection !== null) {
-      await saveCurrentSection(activeSection);
-    }
+    // Check if current section has pending changes
+    const currentSectionState = getSectionState(activeSection);
 
-    setPreviousSection(activeSection);
-    setActiveSection(newSection);
+    if (currentSectionState?.hasPendingChanges) {
+      // Show confirmation dialog
+      setPendingSection(newSection);
+    } else {
+      // No pending changes, just switch
+      setActiveSection(newSection);
+    }
   };
 
-  React.useEffect(() => {
-    // Initialize previousSection after mount
-    if (mounted && previousSection === null) {
-      setPreviousSection(activeSection);
+  const handleConfirmSwitch = async () => {
+    // Save current section
+    const currentSectionState = getSectionState(activeSection);
+    if (currentSectionState?.hasPendingChanges) {
+      try {
+        await currentSectionState.save();
+      } catch {
+        // If save fails, don't switch
+        setPendingSection(null);
+        return;
+      }
     }
-  }, [mounted, activeSection, previousSection]);
+
+    // Switch to new section
+    if (pendingSection) {
+      setActiveSection(pendingSection);
+      setPendingSection(null);
+    }
+  };
+
+  const handleDiscardAndSwitch = () => {
+    // Discard changes and switch
+    const currentSectionState = getSectionState(activeSection);
+    if (currentSectionState?.hasPendingChanges && currentSectionState.discardChanges) {
+      currentSectionState.discardChanges();
+    }
+
+    if (pendingSection) {
+      setActiveSection(pendingSection);
+      setPendingSection(null);
+    }
+  };
+
+  const handleCancelSwitch = () => {
+    setPendingSection(null);
+  };
 
   if (!mounted) return null;
 
   const currentSection = sections.find(s => s.id === activeSection);
-  const sectionState = getCurrentSectionState(activeSection);
 
   return (
-    <SettingsLayout
-      sidebar={
-        <>
-          {sections.map((section) => {
-            const state = getCurrentSectionState(section.id);
-            return (
-              <NavItem
-                key={section.id}
-                icon={section.icon}
-                label={section.label}
-                active={activeSection === section.id}
-                hasPendingChanges={state?.hasPendingChanges}
-                onClick={() => handleSectionChange(section.id)}
-              />
-            );
-          })}
-        </>
-      }
-    >
-      {currentSection?.component}
-    </SettingsLayout>
+    <>
+      <SettingsLayout
+        sidebar={
+          <>
+            {sections.map((section) => {
+              const state = getSectionState(section.id);
+              return (
+                <NavItem
+                  key={section.id}
+                  icon={section.icon}
+                  label={section.label}
+                  active={activeSection === section.id}
+                  hasPendingChanges={state?.hasPendingChanges}
+                  onClick={() => handleSectionChange(section.id)}
+                />
+              );
+            })}
+          </>
+        }
+      >
+        {currentSection?.component}
+      </SettingsLayout>
+
+      {/* Unsaved Changes Dialog */}
+      <Dialog open={!!pendingSection} onClose={handleCancelSwitch} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <WarningIcon color="warning" />
+            <Typography variant="h6">Unsaved Changes</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            You have unsaved changes. Do you want to save them before switching to another section?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleDiscardAndSwitch} color="error">
+            Discard Changes
+          </Button>
+          <Button onClick={handleCancelSwitch}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmSwitch} variant="contained" autoFocus>
+            Save and Switch
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
 

@@ -25,42 +25,56 @@ const SECTION_ID = 'prompts';
 
 export function PromptsSection() {
   const [config, setConfig] = React.useState<Config | null>(null);
+  const [pendingChanges, setPendingChanges] = React.useState<Partial<Config>>({});
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState<{ type: 'success'; text: string } | null>(null);
   const { registerSection, unregisterSection } = useSettingsContext();
+
+  // Merge config with pending changes for display
+  const displayConfig = React.useMemo(() => {
+    if (!config) return null;
+    return { ...config, ...pendingChanges };
+  }, [config, pendingChanges]);
 
   const autoSave = useAutoSave(
     config || ({} as Config),
     async (updatedConfig) => {
       await updateConfig(updatedConfig);
       setConfig(updatedConfig);
+      setPendingChanges({});
     },
     {
-      autoSave: false,
-      onError: (err) => {
+      onError: () => {
         setError('Failed to save configuration');
         setTimeout(() => setError(null), 3000);
       },
     }
   );
 
+  const handleFieldChange = React.useCallback(<K extends keyof Config>(
+    field: K,
+    value: Config[K]
+  ) => {
+    setPendingChanges(prev => ({ ...prev, [field]: value }));
+    autoSave.updateConfig({ [field]: value } as Partial<Config>);
+  }, [autoSave]);
+
   React.useEffect(() => {
     loadConfig();
   }, []);
 
   React.useEffect(() => {
-    if (config) {
-      registerSection(SECTION_ID, {
-        save: autoSave.saveNow,
-        hasPendingChanges: autoSave.hasPendingChanges,
-      });
-    }
+    registerSection(SECTION_ID, {
+      hasPendingChanges: autoSave.hasPendingChanges,
+      save: autoSave.saveNow,
+      discardChanges: autoSave.discardChanges,
+    });
 
     return () => {
       unregisterSection(SECTION_ID);
     };
-  }, [config, autoSave, registerSection, unregisterSection]);
+  }, [autoSave, registerSection, unregisterSection]);
 
   const loadConfig = async () => {
     try {
@@ -77,18 +91,16 @@ export function PromptsSection() {
     if (!config) return;
     const defaultValue = DEFAULT_CONFIG[field];
     if (typeof defaultValue === 'string') {
-      await autoSave.updateConfig({ [field]: defaultValue } as Partial<Config>);
+      handleFieldChange(field, defaultValue as Config[keyof Config]);
       showMessage(`${fieldName} restored to default`);
     }
   };
 
   const restoreAll = async () => {
     if (!config) return;
-    await autoSave.updateConfig({
-      systemPrompt: DEFAULT_CONFIG.systemPrompt,
-      userPromptTranslate: DEFAULT_CONFIG.userPromptTranslate,
-      userPromptPolish: DEFAULT_CONFIG.userPromptPolish,
-    });
+    handleFieldChange('systemPrompt', DEFAULT_CONFIG.systemPrompt);
+    handleFieldChange('userPromptTranslate', DEFAULT_CONFIG.userPromptTranslate);
+    handleFieldChange('userPromptPolish', DEFAULT_CONFIG.userPromptPolish);
     showMessage('All prompts restored to defaults');
   };
 
@@ -121,7 +133,7 @@ export function PromptsSection() {
     );
   }
 
-  if (!config) {
+  if (!config || !displayConfig) {
     return (
       <Box
         display="flex"
@@ -237,8 +249,8 @@ export function PromptsSection() {
             >
               <TextField
                 label="System Prompt"
-                value={config.systemPrompt}
-                onChange={(e) => autoSave.updateConfig({ systemPrompt: e.target.value })}
+                value={displayConfig.systemPrompt || ''}
+                onChange={(e) => handleFieldChange('systemPrompt', e.target.value)}
                 multiline
                 minRows={6}
                 maxRows={15}
@@ -277,8 +289,8 @@ export function PromptsSection() {
             >
               <TextField
                 label="Translation Prompt"
-                value={config.userPromptTranslate}
-                onChange={(e) => autoSave.updateConfig({ userPromptTranslate: e.target.value })}
+                value={displayConfig.userPromptTranslate || ''}
+                onChange={(e) => handleFieldChange('userPromptTranslate', e.target.value)}
                 multiline
                 minRows={6}
                 maxRows={15}
@@ -317,8 +329,8 @@ export function PromptsSection() {
             >
               <TextField
                 label="Polish Prompt"
-                value={config.userPromptPolish}
-                onChange={(e) => autoSave.updateConfig({ userPromptPolish: e.target.value })}
+                value={displayConfig.userPromptPolish || ''}
+                onChange={(e) => handleFieldChange('userPromptPolish', e.target.value)}
                 multiline
                 minRows={6}
                 maxRows={15}

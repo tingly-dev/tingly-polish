@@ -24,18 +24,25 @@ const SECTION_ID = 'triggers';
 
 export function TriggersSection() {
   const [config, setConfig] = React.useState<Config | null>(null);
+  const [pendingChanges, setPendingChanges] = React.useState<Partial<Config>>({});
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const { registerSection, unregisterSection } = useSettingsContext();
+
+  // Merge config with pending changes for display
+  const displayConfig = React.useMemo(() => {
+    if (!config) return null;
+    return { ...config, ...pendingChanges };
+  }, [config, pendingChanges]);
 
   const autoSave = useAutoSave(
     config || ({} as Config),
     async (updatedConfig) => {
       await updateConfig(updatedConfig);
       setConfig(updatedConfig);
+      setPendingChanges({});
     },
     {
-      autoSave: false,
       onError: (err) => {
         setError('Failed to save configuration');
         setTimeout(() => setError(null), 3000);
@@ -43,22 +50,29 @@ export function TriggersSection() {
     }
   );
 
+  const handleFieldChange = React.useCallback(<K extends keyof Config>(
+    field: K,
+    value: Config[K]
+  ) => {
+    setPendingChanges(prev => ({ ...prev, [field]: value }));
+    autoSave.updateConfig({ [field]: value } as Partial<Config>);
+  }, [autoSave]);
+
   React.useEffect(() => {
     loadConfig();
   }, []);
 
   React.useEffect(() => {
-    if (config) {
-      registerSection(SECTION_ID, {
-        save: autoSave.saveNow,
-        hasPendingChanges: autoSave.hasPendingChanges,
-      });
-    }
+    registerSection(SECTION_ID, {
+      hasPendingChanges: autoSave.hasPendingChanges,
+      save: autoSave.saveNow,
+      discardChanges: autoSave.discardChanges,
+    });
 
     return () => {
       unregisterSection(SECTION_ID);
     };
-  }, [config, autoSave, registerSection, unregisterSection]);
+  }, [autoSave, registerSection, unregisterSection]);
 
   const loadConfig = async () => {
     try {
@@ -95,7 +109,7 @@ export function TriggersSection() {
     );
   }
 
-  if (!config) {
+  if (!config || !displayConfig) {
     return (
       <Box
         display="flex"
@@ -178,14 +192,14 @@ export function TriggersSection() {
               <Box display="flex" flexDirection="column" gap={3}>
                 <TriggerKeys
                   label="Translation Trigger"
-                  value={config.triggerTranslate}
-                  onChange={(value) => autoSave.updateConfig({ triggerTranslate: value })}
+                  value={displayConfig.triggerTranslate || ''}
+                  onChange={(value) => handleFieldChange('triggerTranslate', value)}
                   helperText="Click keys to set the pattern that triggers translation"
                 />
                 <TriggerKeys
                   label="Polish Trigger"
-                  value={config.triggerPolish}
-                  onChange={(value) => autoSave.updateConfig({ triggerPolish: value })}
+                  value={displayConfig.triggerPolish || ''}
+                  onChange={(value) => handleFieldChange('triggerPolish', value)}
                   helperText="Click keys to set the pattern that triggers polish"
                 />
               </Box>
@@ -211,8 +225,8 @@ export function TriggersSection() {
               <TextField
                 select
                 label="Target Language"
-                value={config.targetLanguage}
-                onChange={(e) => autoSave.updateConfig({ targetLanguage: e.target.value })}
+                value={displayConfig.targetLanguage || 'English'}
+                onChange={(e) => handleFieldChange('targetLanguage', e.target.value)}
                 fullWidth
                 size="small"
               >

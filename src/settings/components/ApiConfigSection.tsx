@@ -24,18 +24,25 @@ const SECTION_ID = 'api';
 
 export function ApiConfigSection() {
   const [config, setConfig] = React.useState<Config | null>(null);
+  const [pendingChanges, setPendingChanges] = React.useState<Partial<Config>>({});
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const { registerSection, unregisterSection } = useSettingsContext();
+
+  // Merge config with pending changes for display
+  const displayConfig = React.useMemo(() => {
+    if (!config) return null;
+    return { ...config, ...pendingChanges };
+  }, [config, pendingChanges]);
 
   const autoSave = useAutoSave(
     config || ({} as Config),
     async (updatedConfig) => {
       await updateConfig(updatedConfig);
       setConfig(updatedConfig);
+      setPendingChanges({});
     },
     {
-      autoSave: false, // Disable auto-save, only save manually or on tab switch
       onError: (err) => {
         setError('Failed to save configuration');
         setTimeout(() => setError(null), 3000);
@@ -43,23 +50,30 @@ export function ApiConfigSection() {
     }
   );
 
+  const handleFieldChange = React.useCallback(<K extends keyof Config>(
+    field: K,
+    value: Config[K]
+  ) => {
+    setPendingChanges(prev => ({ ...prev, [field]: value }));
+    autoSave.updateConfig({ [field]: value } as Partial<Config>);
+  }, [autoSave]);
+
   React.useEffect(() => {
     loadConfig();
   }, []);
 
   // Register this section with the context
   React.useEffect(() => {
-    if (config) {
-      registerSection(SECTION_ID, {
-        save: autoSave.saveNow,
-        hasPendingChanges: autoSave.hasPendingChanges,
-      });
-    }
+    registerSection(SECTION_ID, {
+      hasPendingChanges: autoSave.hasPendingChanges,
+      save: autoSave.saveNow,
+      discardChanges: autoSave.discardChanges,
+    });
 
     return () => {
       unregisterSection(SECTION_ID);
     };
-  }, [config, autoSave, registerSection, unregisterSection]);
+  }, [autoSave, registerSection, unregisterSection]);
 
   const loadConfig = async () => {
     try {
@@ -96,7 +110,7 @@ export function ApiConfigSection() {
     );
   }
 
-  if (!config) {
+  if (!config || !displayConfig) {
     return (
       <Box
         display="flex"
@@ -180,24 +194,24 @@ export function ApiConfigSection() {
                 <TextField
                   label="API Key"
                   type="password"
-                  value={config.apiKey}
-                  onChange={(e) => autoSave.updateConfig({ apiKey: e.target.value })}
+                  value={displayConfig.apiKey || ''}
+                  onChange={(e) => handleFieldChange('apiKey', e.target.value)}
                   placeholder="Enter your API key"
                   fullWidth
                   size="small"
                 />
                 <TextField
                   label="Base URL"
-                  value={config.baseUrl}
-                  onChange={(e) => autoSave.updateConfig({ baseUrl: e.target.value })}
+                  value={displayConfig.baseUrl || ''}
+                  onChange={(e) => handleFieldChange('baseUrl', e.target.value)}
                   placeholder="https://api.openai.com/v1"
                   fullWidth
                   size="small"
                 />
                 <TextField
                   label="Model"
-                  value={config.model}
-                  onChange={(e) => autoSave.updateConfig({ model: e.target.value })}
+                  value={displayConfig.model || ''}
+                  onChange={(e) => handleFieldChange('model', e.target.value)}
                   placeholder="gpt-4o-mini"
                   fullWidth
                   size="small"
@@ -205,8 +219,8 @@ export function ApiConfigSection() {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={config.useMock}
-                      onChange={(e) => autoSave.updateConfig({ useMock: e.target.checked })}
+                      checked={displayConfig.useMock || false}
+                      onChange={(e) => handleFieldChange('useMock', e.target.checked)}
                     />
                   }
                   label="Use Mock API (for testing without API key)"
