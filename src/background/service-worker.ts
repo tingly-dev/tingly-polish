@@ -157,11 +157,23 @@ class ServiceWorker {
 // Initialize service worker
 new ServiceWorker();
 
+// Handle extension icon click - open settings page
+chrome.action.onClicked.addListener(async (tab) => {
+  // Open settings page in a new tab
+  await chrome.tabs.create({
+    url: chrome.runtime.getURL('src/settings/index.html'),
+    index: tab.index + 1,
+  });
+});
+
 // Handle extension install/update
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
     console.log('Tingly Polish: Extension installed');
-    // Open welcome page or show notification
+    // Open settings page on install
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('src/settings/index.html'),
+    });
   } else if (details.reason === 'update') {
     console.log('Tingly Polish: Extension updated');
   }
