@@ -2,6 +2,7 @@
  * Handles text selection and floating action button
  */
 export class TextSelectionHandler {
+  private static instance: TextSelectionHandler | null = null;
   private floatingButton: HTMLElement | null = null;
   private hideTimeout: number | null = null;
   private config: {
@@ -11,11 +12,51 @@ export class TextSelectionHandler {
   };
   private currentInputElement: HTMLInputElement | HTMLTextAreaElement | null = null;
   private selectionRange: { start: number; end: number } | null = null;
+  private streamingInProgress: boolean = false;
+  private streamingPreview: HTMLElement | null = null;
 
   constructor() {
+    // Prevent multiple instances
+    if (TextSelectionHandler.instance) {
+      console.warn('Tingly Polish: TextSelectionHandler already exists, reusing existing instance');
+      return;
+    }
+
     this.loadConfig();
     this.setupSelectionListener();
     this.setupConfigListener();
+    this.setupStreamListener();
+    TextSelectionHandler.instance = this;
+    console.log('Tingly Polish: TextSelectionHandler initialized');
+  }
+
+  /**
+   * Get or create the singleton instance
+   */
+  static getInstance(): TextSelectionHandler {
+    if (!TextSelectionHandler.instance) {
+      TextSelectionHandler.instance = new TextSelectionHandler();
+    }
+    return TextSelectionHandler.instance;
+  }
+
+  /**
+   * Clean up the instance
+   */
+  static destroy(): void {
+    if (TextSelectionHandler.instance) {
+      const instance = TextSelectionHandler.instance;
+      if (instance.floatingButton) {
+        instance.floatingButton.remove();
+        instance.floatingButton = null;
+      }
+      if (instance.streamingPreview) {
+        instance.streamingPreview.remove();
+        instance.streamingPreview = null;
+      }
+      instance.streamingInProgress = false;
+      TextSelectionHandler.instance = null;
+    }
   }
 
   private async loadConfig(): Promise<void> {
@@ -44,6 +85,16 @@ export class TextSelectionHandler {
             targetLanguage: newConfig.targetLanguage,
           };
         }
+      }
+    });
+  }
+
+  private setupStreamListener(): void {
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'STREAM_CHUNK') {
+        this.handleStreamChunk(message.payload);
+      } else if (message.type === 'STREAM_ERROR') {
+        this.handleStreamError(message.payload);
       }
     });
   }
@@ -129,6 +180,12 @@ export class TextSelectionHandler {
   }
 
   private createFloatingButton(): void {
+    // Remove existing button if present to prevent duplicates
+    const existingButton = document.getElementById('tingly-polish-floating-button');
+    if (existingButton) {
+      existingButton.remove();
+    }
+
     const button = document.createElement('div');
     button.id = 'tingly-polish-floating-button';
     button.innerHTML = `
@@ -138,8 +195,11 @@ export class TextSelectionHandler {
     `;
 
     // Add styles
-    const style = document.createElement('style');
-    style.textContent = `
+    const existingStyle = document.getElementById('tingly-polish-floating-button-style');
+    if (!existingStyle) {
+      const style = document.createElement('style');
+      style.id = 'tingly-polish-floating-button-style';
+      style.textContent = `
       #tingly-polish-floating-button {
         position: absolute;
         display: none;
@@ -210,23 +270,42 @@ export class TextSelectionHandler {
       }
     `;
 
-    document.head.appendChild(style);
+      document.head.appendChild(style);
+    }
+
     document.body.appendChild(button);
 
-    // Event listeners
-    button.querySelector('.tingly-translate-btn')?.addEventListener('click', () => {
-      this.handleAction('translate');
-    });
+    // Event listeners - store references for cleanup
+    const translateBtn = button.querySelector('.tingly-translate-btn') as HTMLButtonElement;
+    const polishBtn = button.querySelector('.tingly-polish-btn') as HTMLButtonElement;
+    const closeBtn = button.querySelector('.tingly-close-btn') as HTMLButtonElement;
 
-    button.querySelector('.tingly-polish-btn')?.addEventListener('click', () => {
-      this.handleAction('polish');
-    });
+    if (translateBtn) {
+      translateBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleAction('translate');
+      });
+    }
 
-    button.querySelector('.tingly-close-btn')?.addEventListener('click', () => {
-      this.hideFloatingButton();
-    });
+    if (polishBtn) {
+      polishBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleAction('polish');
+      });
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.hideFloatingButton();
+      });
+    }
 
     this.floatingButton = button;
+    console.log('Tingly Polish: Floating button created and event listeners attached');
   }
 
   private positionFloatingButton(): void {
@@ -304,9 +383,46 @@ export class TextSelectionHandler {
     try {
       // Show loading state on the button
       this.showLoading();
+      this.streamingInProgress = true;
 
-      // Send to background for processing
-      console.log('Tingly Polish: Sending PROCESS_TEXT message');
+      // Create streaming preview
+      this.showStreamingPreview();
+
+      // Send to background for streaming processing
+      console.log('Tingly Polish: Sending PROCESS_TEXT_STREAM message');
+      const response = await chrome.runtime.sendMessage({
+        type: 'PROCESS_TEXT_STREAM',
+        payload: {
+          text: selectedText,
+          type,
+        },
+      });
+
+      // Check if the streaming request was initiated successfully
+      if (response && response.success === false) {
+        console.error('Tingly Polish: Stream request failed', response.error);
+        // Fallback to non-streaming
+        await this.handleNonStreamingRequest(selectedText, type);
+      }
+      // If success is true or undefined, streaming is in progress
+    } catch (error) {
+      console.error('Tingly Polish: Failed to send stream request', error);
+      // Fallback to non-streaming
+      try {
+        await this.handleNonStreamingRequest(selectedText, type);
+      } catch (fallbackError) {
+        console.error('Tingly Polish: Fallback also failed', fallbackError);
+        alert('Failed to process text. Please try again.');
+        this.cleanupStreaming();
+      }
+    }
+  }
+
+  private async handleNonStreamingRequest(
+    selectedText: string,
+    type: 'translate' | 'polish'
+  ): Promise<void> {
+    try {
       const response = await chrome.runtime.sendMessage({
         type: 'PROCESS_TEXT',
         payload: {
@@ -329,8 +445,180 @@ export class TextSelectionHandler {
       console.error('Tingly Polish: Failed to process selected text', error);
       alert('Failed to process text. Please try again.');
     } finally {
-      this.hideLoading();
+      this.cleanupStreaming();
     }
+  }
+
+  private handleStreamChunk(payload: { delta: string; accumulated: string; done: boolean }): void {
+    if (!this.streamingInProgress) return;
+
+    const { delta, accumulated, done } = payload;
+
+    // Update preview
+    this.updateStreamingPreview(accumulated);
+
+    if (done) {
+      console.log('Tingly Polish: Stream completed');
+      // Replace the selected text with final result
+      this.replaceSelectedText(accumulated);
+      this.cleanupStreaming();
+      this.hideFloatingButton();
+    }
+  }
+
+  private handleStreamError(payload: { error: string }): void {
+    console.error('Tingly Polish: Stream error', payload);
+    alert(`Processing failed: ${payload.error}`);
+    this.cleanupStreaming();
+  }
+
+  private showStreamingPreview(): void {
+    // Remove existing preview
+    if (this.streamingPreview) {
+      this.streamingPreview.remove();
+    }
+
+    const preview = document.createElement('div');
+    preview.id = 'tingly-polish-streaming-preview';
+    preview.className = 'tingly-polish-streaming-preview';
+
+    // Add preview styles
+    const existingStyle = document.getElementById('tingly-polish-streaming-preview-style');
+    if (!existingStyle) {
+      const style = document.createElement('style');
+      style.id = 'tingly-polish-streaming-preview-style';
+      style.textContent = `
+        .tingly-polish-streaming-preview {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+          border: 1px solid #334155;
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.3);
+          z-index: 999999;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          color: #e2e8f0;
+          padding: 16px;
+          min-width: 300px;
+          max-width: 500px;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+
+        .tingly-polish-streaming-preview-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid #334155;
+        }
+
+        .tingly-polish-streaming-preview-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #94a3b8;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .tingly-polish-streaming-preview-indicator {
+          width: 8px;
+          height: 8px;
+          background: #22c55e;
+          border-radius: 50%;
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .tingly-polish-streaming-preview-close {
+          background: transparent;
+          border: none;
+          color: #94a3b8;
+          cursor: pointer;
+          font-size: 18px;
+          padding: 4px;
+          line-height: 1;
+          border-radius: 4px;
+          transition: all 0.15s ease;
+        }
+
+        .tingly-polish-streaming-preview-close:hover {
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+        }
+
+        .tingly-polish-streaming-preview-content {
+          font-size: 14px;
+          line-height: 1.6;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+
+        .tingly-polish-streaming-preview-content::after {
+          content: '|';
+          animation: blink 1s step-end infinite;
+          color: #6366f1;
+        }
+
+        @keyframes blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    preview.innerHTML = `
+      <div class="tingly-polish-streaming-preview-header">
+        <div class="tingly-polish-streaming-preview-title">
+          <div class="tingly-polish-streaming-preview-indicator"></div>
+          Processing...
+        </div>
+        <button class="tingly-polish-streaming-preview-close">×</button>
+      </div>
+      <div class="tingly-polish-streaming-preview-content"></div>
+    `;
+
+    // Add close button handler
+    const closeBtn = preview.querySelector('.tingly-polish-streaming-preview-close') as HTMLButtonElement;
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.cleanupStreaming();
+      });
+    }
+
+    document.body.appendChild(preview);
+    this.streamingPreview = preview;
+  }
+
+  private updateStreamingPreview(text: string): void {
+    if (this.streamingPreview) {
+      const content = this.streamingPreview.querySelector('.tingly-polish-streaming-preview-content');
+      if (content) {
+        content.textContent = text;
+        // Auto-scroll to bottom
+        content.scrollTop = content.scrollHeight;
+      }
+    }
+  }
+
+  private cleanupStreaming(): void {
+    this.streamingInProgress = false;
+    if (this.streamingPreview) {
+      this.streamingPreview.remove();
+      this.streamingPreview = null;
+    }
+    this.hideLoading();
   }
 
   private replaceSelectedText(text: string): void {

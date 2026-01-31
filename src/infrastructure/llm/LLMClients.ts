@@ -1,68 +1,83 @@
 import type { ILLMClient } from '../../domain/types.js';
 import type { Config } from '../../domain/types.js';
-import OpenAI from 'openai';
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText, streamText } from 'ai';
 
 /**
- * OpenAI-compatible LLM client adapter
- * Supports OpenAI API and compatible services (Azure, local models, etc.)
+ * OpenAI-compatible LLM client adapter using ai-sdk/openai
+ * This SDK provides automatic streaming with clean API
  */
 export class OpenAIAdapter implements ILLMClient {
-  private client: OpenAI | null = null;
   private config: Config;
 
   constructor(config: Config) {
     this.config = config;
-    this.initializeClient();
-  }
-
-  private initializeClient(): void {
-    if (!this.config.apiKey || this.config.useMock) {
-      this.client = null;
-      return;
-    }
-
-    this.client = new OpenAI({
-      apiKey: this.config.apiKey,
-      baseURL: this.config.baseUrl,
-      dangerouslyAllowBrowser: true, // For extension context
-    });
   }
 
   updateConfig(config: Config): void {
     this.config = config;
-    this.initializeClient();
   }
 
   isAvailable(): boolean {
-    return this.client !== null && !!this.config.apiKey;
+    return !!this.config.apiKey;
   }
 
   getModel(): string {
     return this.config.model;
   }
 
-  async translate(text: string, targetLanguage: string): Promise<string> {
-    if (!this.client) {
-      throw new Error('LLM client not available. Check API key configuration.');
+  private createClient() {
+    if (!this.config.apiKey) {
+      throw new Error('API key not configured');
     }
 
-    const systemPrompt = this.config.systemPrompt;
+    return createOpenAI({
+      apiKey: this.config.apiKey,
+      baseURL: this.config.baseUrl,
+    });
+  }
+
+  async translate(text: string, targetLanguage: string): Promise<string> {
     const userPrompt = this.config.userPromptTranslate
       .replace('{text}', text)
       .replace('{targetLanguage}', targetLanguage);
 
+    console.log('Tingly Polish: translate API request', {
+      systemPrompt: this.config.systemPrompt,
+      systemPromptLength: this.config.systemPrompt?.length,
+      userPrompt: userPrompt,
+      userPromptLength: userPrompt?.length,
+      model: this.config.model,
+      baseUrl: this.config.baseUrl,
+    });
+
+    // Validate inputs
+    if (!this.config.systemPrompt || this.config.systemPrompt.trim().length === 0) {
+      console.error('Tingly Polish: systemPrompt is empty!');
+      throw new Error('System prompt is required but not configured');
+    }
+    if (!userPrompt || userPrompt.trim().length === 0) {
+      console.error('Tingly Polish: userPrompt is empty!');
+      throw new Error('User prompt is required but not provided');
+    }
+
     try {
-      const response = await this.client.chat.completions.create({
-        model: this.config.model,
+      const client = this.createClient();
+      const result = await generateText({
+        model: client.chat(this.config.model),
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: this.config.systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.3,
-        max_tokens: 2000,
+        onFinish: ({ text, usage, finishReason }) => {
+          console.log('Tingly Polish: Translation finished', {
+            textLength: text?.length ?? 0,
+            usage,
+            finishReason,
+          });
+        },
       });
-
-      return response.choices[0]?.message?.content ?? text;
+      return result.text ?? text;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Translation failed: ${error.message}`);
@@ -72,30 +87,160 @@ export class OpenAIAdapter implements ILLMClient {
   }
 
   async polish(text: string): Promise<string> {
-    if (!this.client) {
-      throw new Error('LLM client not available. Check API key configuration.');
-    }
-
-    const systemPrompt = this.config.systemPrompt;
     const userPrompt = this.config.userPromptPolish.replace('{text}', text);
 
+    console.log('Tingly Polish: polish API request', {
+      systemPrompt: this.config.systemPrompt,
+      systemPromptLength: this.config.systemPrompt?.length,
+      userPrompt: userPrompt,
+      userPromptLength: userPrompt?.length,
+      model: this.config.model,
+      baseUrl: this.config.baseUrl,
+    });
+
+    // Validate inputs
+    if (!this.config.systemPrompt || this.config.systemPrompt.trim().length === 0) {
+      console.error('Tingly Polish: systemPrompt is empty!');
+      throw new Error('System prompt is required but not configured');
+    }
+    if (!userPrompt || userPrompt.trim().length === 0) {
+      console.error('Tingly Polish: userPrompt is empty!');
+      throw new Error('User prompt is required but not provided');
+    }
+
     try {
-      const response = await this.client.chat.completions.create({
-        model: this.config.model,
+      const client = this.createClient();
+      const result = await generateText({
+        model: client.chat(this.config.model),
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: this.config.systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.7,
-        max_tokens: 2000,
+        onFinish: ({ text, usage, finishReason }) => {
+          console.log('Tingly Polish: Polish finished', {
+            textLength: text?.length ?? 0,
+            usage,
+            finishReason,
+          });
+        },
       });
-
-      return response.choices[0]?.message?.content ?? text;
+      return result.text ?? text;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Polish failed: ${error.message}`);
       }
       throw new Error('Polish failed: Unknown error');
+    }
+  }
+
+  async *translateStream(text: string, targetLanguage: string): AsyncIterable<string> {
+    const userPrompt = this.config.userPromptTranslate
+      .replace('{text}', text)
+      .replace('{targetLanguage}', targetLanguage);
+
+    console.log('Tingly Polish: translateStream API request', {
+      systemPrompt: this.config.systemPrompt,
+      systemPromptLength: this.config.systemPrompt?.length,
+      userPrompt: userPrompt,
+      userPromptLength: userPrompt?.length,
+      model: this.config.model,
+      baseUrl: this.config.baseUrl,
+    });
+
+    // Validate inputs
+    if (!this.config.systemPrompt || this.config.systemPrompt.trim().length === 0) {
+      console.error('Tingly Polish: systemPrompt is empty!');
+      throw new Error('System prompt is required but not configured');
+    }
+    if (!userPrompt || userPrompt.trim().length === 0) {
+      console.error('Tingly Polish: userPrompt is empty!');
+      throw new Error('User prompt is required but not provided');
+    }
+
+    try {
+      const client = this.createClient();
+      const result = await streamText({
+        model: client.chat(this.config.model),
+        messages: [
+          { role: 'system', content: this.config.systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        onFinish: ({ text, usage, finishReason }) => {
+          console.log('Tingly Polish: Translation stream finished', {
+            textLength: text?.length ?? 0,
+            usage,
+            finishReason,
+          });
+        },
+      });
+      for await (const chunk of result.textStream) {
+        yield chunk;
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Translation streaming failed: ${error.message}`);
+      }
+      throw new Error('Translation streaming failed: Unknown error');
+    }
+  }
+
+  async *polishStream(text: string): AsyncIterable<string> {
+    const userPrompt = this.config.userPromptPolish.replace('{text}', text);
+
+    console.log('Tingly Polish: polishStream API request', {
+      systemPrompt: this.config.systemPrompt,
+      systemPromptLength: this.config.systemPrompt?.length,
+      userPrompt: userPrompt,
+      userPromptLength: userPrompt?.length,
+      model: this.config.model,
+      baseUrl: this.config.baseUrl,
+    });
+
+    // Validate inputs
+    if (!this.config.systemPrompt || this.config.systemPrompt.trim().length === 0) {
+      console.error('Tingly Polish: systemPrompt is empty!');
+      throw new Error('System prompt is required but not configured');
+    }
+    if (!userPrompt || userPrompt.trim().length === 0) {
+      console.error('Tingly Polish: userPrompt is empty!');
+      throw new Error('User prompt is required but not provided');
+    }
+
+    try {
+      const client = this.createClient();
+      const result = await streamText({
+        model: client.chat(this.config.model),
+        messages: [
+          { role: 'system', content: this.config.systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        onFinish: ({ text, usage, finishReason }) => {
+          console.log('Tingly Polish: Polish stream finished', {
+            textLength: text?.length ?? 0,
+            usage,
+            finishReason,
+          });
+        },
+      });
+
+      let chunkCount = 0;
+      for await (const chunk of result.textStream) {
+        chunkCount++;
+        if (chunkCount === 1) {
+          console.log('Tingly Polish: First chunk received:', chunk);
+        }
+        if (chunkCount % 10 === 0) {
+          console.log(`Tingly Polish: ${chunkCount} chunks received from AI SDK`);
+        }
+        yield chunk;
+      }
+      console.log(`Tingly Polish: Total chunks from AI SDK: ${chunkCount}`);
+    } catch (error) {
+      console.error('Tingly Polish: Stream error:', error);
+      if (error instanceof Error) {
+        throw new Error(`Polish streaming failed: ${error.message}`);
+      }
+      throw new Error('Polish streaming failed: Unknown error');
     }
   }
 }
@@ -209,6 +354,28 @@ export class MockLLMClient implements ILLMClient {
     return polished === text
       ? `${text} (polished)`
       : polished;
+  }
+
+  async *translateStream(text: string, targetLanguage: string): AsyncIterable<string> {
+    // Simulate streaming with chunks
+    const result = await this.translate(text, targetLanguage);
+    const chunkSize = 5;
+
+    for (let i = 0; i < result.length; i += chunkSize) {
+      await this.delay(50);
+      yield result.substring(i, i + chunkSize);
+    }
+  }
+
+  async *polishStream(text: string): AsyncIterable<string> {
+    // Simulate streaming with chunks
+    const result = await this.polish(text);
+    const chunkSize = 5;
+
+    for (let i = 0; i < result.length; i += chunkSize) {
+      await this.delay(50);
+      yield result.substring(i, i + chunkSize);
+    }
   }
 
   private delay(ms: number): Promise<void> {

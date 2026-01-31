@@ -119,6 +119,7 @@ export type MessageType =
   | 'ADD_HISTORY'
   | 'CLEAR_HISTORY'
   | 'PROCESS_TEXT'
+  | 'PROCESS_TEXT_STREAM'
   | 'REPLACE_TEXT';
 
 export type Message<T = unknown> = {
@@ -131,6 +132,7 @@ export type ProcessTextPayload = {
   text: string;
   type: ProcessType;
   elementInfo?: InputElementInfo;
+  elementInfoSerializable?: SerializableElementInfo;
 };
 
 export type ReplaceTextPayload = {
@@ -138,9 +140,31 @@ export type ReplaceTextPayload = {
   elementInfo: InputElementInfo;
 };
 
+export type SerializableElementInfo = {
+  type: 'input' | 'textarea' | 'contenteditable';
+  value: string;
+  selectionStart?: number;
+  selectionEnd?: number;
+  elementSelector?: string;
+  url?: string;
+};
+
 export type ProcessTextResponse = {
   result: string;
   historyEntry: HistoryEntry;
+};
+
+export type StreamChunk = {
+  delta: string;
+  done: boolean;
+};
+
+export type ProcessTextStreamPayload = {
+  text: string;
+  type: ProcessType;
+  elementInfo?: InputElementInfo;
+  tabId?: number;
+  frameId?: number;
 };
 
 // ============================================================================
@@ -177,6 +201,8 @@ export interface IHistoryRepository {
 export interface ILLMClient {
   translate(text: string, targetLanguage: string): Promise<string>;
   polish(text: string): Promise<string>;
+  translateStream(text: string, targetLanguage: string): AsyncIterable<string>;
+  polishStream(text: string): AsyncIterable<string>;
   isAvailable(): boolean;
   getModel(): string;
 }

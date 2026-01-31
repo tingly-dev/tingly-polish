@@ -40,7 +40,15 @@ global.chrome = {
       clear: vi.fn(),
     },
   },
-} as unknown typeof chrome;
+  tabs: {
+    sendMessage: vi.fn(),
+  },
+  action: {
+    onClicked: {
+      addListener: vi.fn(),
+    },
+  },
+} as unknown as typeof chrome;
 
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn(() => ({

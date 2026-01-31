@@ -91,7 +91,7 @@ describe('TextProcessor', () => {
     });
 
     it('should escape multiple characters', () => {
-      const result = processor.escapeHtml('<script>alert("it's")</script>');
+      const result = processor.escapeHtml(`<script>alert("it's")</script>`);
       expect(result).toBe(
         '&lt;script&gt;alert(&quot;it&#x27;s&quot;)&lt;/script&gt;'
       );

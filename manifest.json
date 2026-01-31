@@ -8,7 +8,9 @@
     "activeTab"
   ],
   "host_permissions": [
-    "https://*/*"
+    "https://*/*",
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",

@@ -34,6 +34,7 @@ export default defineConfig({
         assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
+    external: ['ai-sdk/openai'],
   },
   test: {
     globals: true,
