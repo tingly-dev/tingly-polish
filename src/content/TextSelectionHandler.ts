@@ -14,6 +14,7 @@ export class TextSelectionHandler {
   private selectionRange: { start: number; end: number } | null = null;
   private streamingInProgress: boolean = false;
   private streamingPreview: HTMLElement | null = null;
+  private streamingResult: string = '';
 
   constructor() {
     // Prevent multiple instances
@@ -452,17 +453,21 @@ export class TextSelectionHandler {
   private handleStreamChunk(payload: { delta: string; accumulated: string; done: boolean }): void {
     if (!this.streamingInProgress) return;
 
-    const { delta, accumulated, done } = payload;
+    const { accumulated, done } = payload;
+
+    // Save the result for copy functionality
+    this.streamingResult = accumulated;
 
     // Update preview
     this.updateStreamingPreview(accumulated);
 
     if (done) {
       console.log('Tingly Polish: Stream completed');
-      // Replace the selected text with final result
-      this.replaceSelectedText(accumulated);
-      this.cleanupStreaming();
-      this.hideFloatingButton();
+      // Show completed state with action buttons
+      this.showStreamingCompleted(accumulated);
+      // Don't auto-close anymore - let user decide what to do
+      this.streamingInProgress = false;
+      this.hideLoading();
     }
   }
 
@@ -609,6 +614,166 @@ export class TextSelectionHandler {
         // Auto-scroll to bottom
         content.scrollTop = content.scrollHeight;
       }
+    }
+  }
+
+  private showStreamingCompleted(result: string): void {
+    if (!this.streamingPreview) return;
+
+    const header = this.streamingPreview.querySelector('.tingly-polish-streaming-preview-header');
+    if (!header) return;
+
+    // Update header to show completed state with action buttons
+    header.innerHTML = `
+      <div class="tingly-polish-streaming-preview-title">
+        <div class="tingly-polish-streaming-preview-indicator tingly-completed"></div>
+        <span>Completed</span>
+      </div>
+      <div class="tingly-polish-streaming-preview-actions">
+        <button class="tingly-polish-copy-btn" title="Copy result">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
+        <button class="tingly-polish-replace-btn" title="Replace selected text">Replace</button>
+        <button class="tingly-polish-streaming-preview-close" title="Close">×</button>
+      </div>
+    `;
+
+    // Update indicator style to show completed state
+    const style = document.getElementById('tingly-polish-streaming-preview-style');
+    if (style) {
+      style.textContent += `
+        .tingly-polish-streaming-preview-indicator.tingly-completed {
+          background: #22c55e;
+          animation: none;
+        }
+
+        .tingly-polish-streaming-preview-content::after {
+          content: '';
+          animation: none;
+        }
+
+        .tingly-polish-streaming-preview-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .tingly-polish-copy-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+          border: 1px solid #475569;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          color: #e2e8f0;
+          padding: 6px;
+          width: 32px;
+          height: 32px;
+        }
+
+        .tingly-polish-copy-btn:hover {
+          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+          border-color: #6366f1;
+          color: #ffffff;
+        }
+
+        .tingly-polish-copy-btn.copied {
+          background: #22c55e;
+          border-color: #22c55e;
+          color: #ffffff;
+        }
+
+        .tingly-polish-replace-btn {
+          background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+          border: 1px solid #14b8a6;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          color: #ffffff;
+          padding: 6px 12px;
+          font-size: 13px;
+          font-weight: 500;
+        }
+
+        .tingly-polish-replace-btn:hover {
+          background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
+        }
+      `;
+    }
+
+    // Add copy button handler
+    const copyBtn = header.querySelector('.tingly-polish-copy-btn') as HTMLButtonElement;
+    if (copyBtn) {
+      copyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.copyResultToClipboard(result);
+      });
+    }
+
+    // Add replace button handler
+    const replaceBtn = header.querySelector('.tingly-polish-replace-btn') as HTMLButtonElement;
+    if (replaceBtn) {
+      replaceBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.replaceSelectedText(result);
+        this.cleanupStreaming();
+        this.hideFloatingButton();
+      });
+    }
+
+    // Update close button handler
+    const closeBtn = header.querySelector('.tingly-polish-streaming-preview-close') as HTMLButtonElement;
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.cleanupStreaming();
+      });
+    }
+  }
+
+  private async copyResultToClipboard(text: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+      // Show copied feedback
+      const copyBtn = this.streamingPreview?.querySelector('.tingly-polish-copy-btn') as HTMLButtonElement;
+      if (copyBtn) {
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.classList.remove('copied');
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Tingly Polish: Failed to copy to clipboard', error);
+      // Fallback: use older API
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        const copyBtn = this.streamingPreview?.querySelector('.tingly-polish-copy-btn') as HTMLButtonElement;
+        if (copyBtn) {
+          copyBtn.classList.add('copied');
+          setTimeout(() => {
+            copyBtn.classList.remove('copied');
+          }, 1500);
+        }
+      } catch (fallbackError) {
+        console.error('Tingly Polish: Fallback copy also failed', fallbackError);
+      }
+      document.body.removeChild(textArea);
     }
   }
 
