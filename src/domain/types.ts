@@ -3,6 +3,17 @@
 // ============================================================================
 
 /**
+ * Custom site input selector mapping
+ */
+export interface SiteMapping {
+  id: string;
+  name: string;
+  urlPattern: string;  // URL pattern (supports wildcards, e.g., *.basecamp.com)
+  inputSelectors: string[];  // CSS selectors for input elements
+  enabled: boolean;
+}
+
+/**
  * Extension configuration stored in Chrome storage
  */
 export interface Config {
@@ -23,7 +34,37 @@ export interface Config {
   // Settings
   useMock: boolean;
   targetLanguage: string;
+
+  // Custom site mappings
+  siteMappings: SiteMapping[];
 }
+
+/**
+ * Default site mappings - built-in configurations
+ */
+export const DEFAULT_SITE_MAPPINGS: SiteMapping[] = [
+  {
+    id: 'basecamp',
+    name: 'Basecamp',
+    urlPattern: '*.basecamp.com',
+    inputSelectors: ['trix-editor', 'textarea.input--title', '[contenteditable]'],
+    enabled: true,
+  },
+  {
+    id: 'notion',
+    name: 'Notion',
+    urlPattern: '*.notion.site',
+    inputSelectors: ['[contenteditable="true"]'],
+    enabled: false,
+  },
+  {
+    id: 'gmail',
+    name: 'Gmail',
+    urlPattern: 'mail.google.com',
+    inputSelectors: ['[role="textbox"]', 'div[contenteditable="true"]'],
+    enabled: false,
+  },
+];
 
 /**
  * Default configuration values
@@ -32,13 +73,19 @@ export const DEFAULT_CONFIG: Config = {
   apiKey: '',
   baseUrl: 'https://api.openai.com/v1',
   model: 'gpt-4o-mini',
-  systemPrompt: `You are a professional language assistant. Provide accurate translations and natural, polished text improvements. Maintain the original meaning while enhancing clarity and flow.`,
+  systemPrompt: `You are a professional language assistant.
+Provide accurate translations and natural, polished text improvements.
+Maintain the original meaning while enhancing clarity and flow.
+
+Keep format including space, newline, divider, list and so on.
+Detect language in text and Keep original language even mixture.`,
   userPromptTranslate: `Translate the following text to {targetLanguage}:\n\n{text}\n\nOnly return the translated text, no explanations.`,
   userPromptPolish: `Improve and polish the following text for better clarity and flow:\n\n{text}\n\nOnly return the improved text, no explanations.`,
   triggerTranslate: '   ',  // Triple space
   triggerPolish: '   ',     // Triple space (will be distinguished by key combo)
   useMock: true,
   targetLanguage: 'English',
+  siteMappings: [...DEFAULT_SITE_MAPPINGS],
 };
 
 /**
@@ -259,3 +306,75 @@ export const DEFAULT_TARGET_LANGUAGES = [
   'Arabic',
   'Hindi',
 ] as const;
+
+/**
+ * Check if a URL matches a pattern (supports wildcards)
+ * @param url - The URL to check
+ * @param pattern - The pattern to match against (e.g., *.basecamp.com, github.com/*)
+ * @returns true if the URL matches the pattern
+ */
+export function matchesUrlPattern(url: string, pattern: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname;
+    const pathname = urlObj.pathname;
+
+    // Convert pattern to regex
+    let regexPattern = pattern
+      .replace(/\./g, '\\.')  // Escape dots
+      .replace(/\*/g, '.*');   // Convert wildcards to .*
+
+    // If pattern contains a slash, include pathname matching
+    if (pattern.includes('/')) {
+      const [patternDomain, ...patternPathParts] = pattern.split('/');
+      const patternPath = patternPathParts.join('/');
+
+      const domainRegex = new RegExp(`^${patternDomain.replace(/\./g, '\\.').replace(/\*/g, '.*')}$`);
+      if (!domainRegex.test(hostname)) {
+        return false;
+      }
+
+      const pathRegex = new RegExp(`^${patternPath.replace(/\*/g, '.*')}$`);
+      return pathRegex.test(pathname);
+    }
+
+    // Domain-only matching
+    const regex = new RegExp(`^${regexPattern}$`);
+    return regex.test(hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get input selectors for the current URL based on site mappings
+ * @param url - The current page URL
+ * @param siteMappings - Array of site mappings
+ * @returns Array of CSS selectors for input elements
+ */
+export function getInputSelectorsForUrl(url: string, siteMappings: SiteMapping[]): string[] {
+  // Default selectors
+  const defaultSelectors = [
+    'input[type="text"]',
+    'input[type="search"]',
+    'input:not([type])',
+    'textarea',
+    '[contenteditable]',
+    'trix-editor',
+  ];
+
+  // Find matching site mappings
+  const matchingMappings = siteMappings.filter(
+    mapping => mapping.enabled && matchesUrlPattern(url, mapping.urlPattern)
+  );
+
+  if (matchingMappings.length === 0) {
+    return defaultSelectors;
+  }
+
+  // Merge selectors from all matching mappings (avoid duplicates)
+  const customSelectors = matchingMappings.flatMap(m => m.inputSelectors);
+  const uniqueSelectors = Array.from(new Set([...defaultSelectors, ...customSelectors]));
+
+  return uniqueSelectors;
+}

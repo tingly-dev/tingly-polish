@@ -15,6 +15,7 @@ import {
   Keyboard as KeyboardIcon,
   Psychology as PsychologyIcon,
   History as HistoryIcon,
+  Webhook as WebIcon,
   Warning as WarningIcon,
 } from '@mui/icons-material';
 import { SettingsLayout } from './components/SettingsLayout';
@@ -24,10 +25,11 @@ import { ApiConfigSection } from './components/ApiConfigSection';
 import { TriggersSection } from './components/TriggersSection';
 import { PromptsSection } from './components/PromptsSection';
 import { HistorySection } from './components/HistorySection';
+import { SiteMappingsSection } from './components/SiteMappingsSection';
 import { SettingsProvider, useSettingsContext } from './contexts/SettingsContext';
 import { theme } from '../popup/theme';
 
-type Section = 'api' | 'triggers' | 'prompts' | 'history';
+type Section = 'api' | 'triggers' | 'prompts' | 'history' | 'sitemappings';
 
 interface SectionConfig {
   id: Section;
@@ -54,6 +56,12 @@ const sections: SectionConfig[] = [
     label: 'Prompts',
     icon: <PsychologyIcon />,
     component: <PromptsSection />,
+  },
+  {
+    id: 'sitemappings',
+    label: 'Site Mappings',
+    icon: <WebIcon />,
+    component: <SiteMappingsSection />,
   },
   {
     id: 'history',

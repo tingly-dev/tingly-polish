@@ -1,4 +1,5 @@
 import { triggerDetector } from '../domain/services/TriggerDetector.js';
+import { SiteMappingService } from '../domain/services/SiteMappingService.js';
 import type { InputElementInfo } from '../domain/types.js';
 import { TextSelectionHandler } from './TextSelectionHandler.js';
 
@@ -10,9 +11,11 @@ export class InputHandler {
   private config: {
     triggerTranslate: string;
     triggerPolish: string;
+    siteMappings: any[];
   } = {
     triggerTranslate: '   ',
     triggerPolish: '///',
+    siteMappings: [],
   };
 
   constructor() {
@@ -32,6 +35,7 @@ export class InputHandler {
         this.config = {
           triggerTranslate: response.data.triggerTranslate,
           triggerPolish: response.data.triggerPolish,
+          siteMappings: response.data.siteMappings || [],
         };
       }
     } catch {
@@ -47,10 +51,32 @@ export class InputHandler {
           this.config = {
             triggerTranslate: newConfig.triggerTranslate,
             triggerPolish: newConfig.triggerPolish,
+            siteMappings: newConfig.siteMappings || [],
           };
+          // Re-monitor elements with new selectors
+          this.monitorExistingElements();
         }
       }
     });
+  }
+
+  /**
+   * Get input selectors based on current URL and config
+   */
+  private getInputSelectors(): string[] {
+    try {
+      return SiteMappingService.getSelectorsForCurrentUrl(this.config.siteMappings || []);
+    } catch {
+      // Fallback to default selectors
+      return [
+        'input[type="text"]',
+        'input[type="search"]',
+        'input:not([type])',
+        'textarea',
+        '[contenteditable]',
+        'trix-editor',
+      ];
+    }
   }
 
   /**
@@ -81,9 +107,8 @@ export class InputHandler {
    * Monitor all existing input elements on the page
    */
   private monitorExistingElements(): void {
-    const inputs = document.querySelectorAll(
-      'input[type="text"], input[type="search"], input:not([type]), textarea, [contenteditable="true"]'
-    );
+    const selectors = this.getInputSelectors();
+    const inputs = document.querySelectorAll(selectors.join(', '));
 
     inputs.forEach(element => this.monitorElement(element));
   }
@@ -244,6 +269,20 @@ export class InputHandler {
       element.value = text;
       element.selectionStart = element.selectionEnd = start;
       element.dispatchEvent(new Event('input', { bubbles: true }));
+    } else if (element.tagName === 'TRIX-EDITOR') {
+      // For Trix editor, use the editor's document API
+      const trixEditor = element as any;
+      if (trixEditor.editor && trixEditor.editor.loadHTML) {
+        // Convert text to HTML (preserve line breaks)
+        const html = text.split('\n').map(line => `<div>${line}</div>`).join('');
+        trixEditor.editor.loadHTML(html);
+      } else {
+        // Fallback: clear and insert text
+        element.innerHTML = text.split('\n').map(line => `<div>${line}</div>`).join('');
+      }
+      // Trigger Trix change event
+      element.dispatchEvent(new Event('trix-change', { bubbles: true }));
+      element.dispatchEvent(new Event('input', { bubbles: true }));
     } else if (element.isContentEditable) {
       element.textContent = text;
       element.dispatchEvent(new Event('input', { bubbles: true }));
@@ -265,15 +304,37 @@ export class InputHandler {
     }
 
     const htmlElement = element as HTMLElement;
-    if (htmlElement.isContentEditable) {
+    if (htmlElement.isContentEditable || htmlElement.tagName === 'TRIX-EDITOR') {
       return {
         element: htmlElement,
         type: 'contenteditable',
-        value: htmlElement.textContent ?? '',
+        value: this.extractTextFromEditable(htmlElement),
       };
     }
 
     return null;
+  }
+
+  /**
+   * Extract text from contenteditable elements, handling Trix editor specially
+   */
+  private extractTextFromEditable(element: HTMLElement): string {
+    // For Trix editor, get text content properly (preserves line breaks better)
+    if (element.tagName === 'TRIX-EDITOR') {
+      // Get the inner div elements that contain the actual text
+      const innerDivs = element.querySelectorAll('div');
+      const textParts: string[] = [];
+      innerDivs.forEach(div => {
+        const text = div.textContent ?? '';
+        if (text) {
+          textParts.push(text.trim());
+        }
+      });
+      return textParts.join('\n');
+    }
+
+    // For regular contenteditable elements
+    return element.textContent ?? '';
   }
 
   /**

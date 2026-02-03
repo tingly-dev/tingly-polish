@@ -27,7 +27,14 @@ export class ChromeConfigRepository implements IConfigRepository {
 
     if (stored) {
       // Merge with defaults to handle new fields
-      this.cachedConfig = { ...DEFAULT_CONFIG, ...stored };
+      // For siteMappings, use stored value if it exists and is not empty, otherwise use defaults
+      this.cachedConfig = {
+        ...DEFAULT_CONFIG,
+        ...stored,
+        siteMappings: stored.siteMappings && stored.siteMappings.length > 0
+          ? stored.siteMappings
+          : DEFAULT_CONFIG.siteMappings,
+      };
     } else {
       this.cachedConfig = { ...DEFAULT_CONFIG };
       await this.saveConfig(this.cachedConfig);
