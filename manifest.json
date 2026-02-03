@@ -5,7 +5,8 @@
   "description": "AI-powered translation and text polishing for Chrome",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "https://*/*",
@@ -25,6 +26,7 @@
     }
   ],
   "action": {
+    "default_popup": "src/popup/index.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

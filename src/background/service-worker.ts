@@ -134,6 +134,22 @@ class ServiceWorker {
           });
         return true; // Keep channel open for async response
       }
+
+      if (message.type === 'OPEN_SETTINGS') {
+        // Open settings page in a new tab
+        chrome.tabs.create({
+          url: chrome.runtime.getURL('src/settings/index.html'),
+        }).then(() => {
+          sendResponse({ success: true });
+        }).catch(error => {
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to open settings',
+          });
+        });
+        return true; // Keep channel open for async response
+      }
+
       return false;
     });
   }
@@ -290,15 +306,6 @@ class ServiceWorker {
 
 // Initialize service worker
 new ServiceWorker();
-
-// Handle extension icon click - open settings page
-chrome.action.onClicked.addListener(async (tab) => {
-  // Open settings page in a new tab
-  await chrome.tabs.create({
-    url: chrome.runtime.getURL('src/settings/index.html'),
-    index: tab.index + 1,
-  });
-});
 
 // Handle extension install/update
 chrome.runtime.onInstalled.addListener((details) => {

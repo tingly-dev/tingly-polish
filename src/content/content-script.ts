@@ -518,4 +518,41 @@ new MutationObserver(() => {
   }
 }).observe(document.body, { childList: true, subtree: true });
 
+// Handle messages from popup
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === 'PING') {
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (message.type === 'GET_SELECTED_TEXT') {
+    const selection = window.getSelection();
+    const selectedText = selection?.toString()?.trim();
+
+    sendResponse({
+      data: {
+        selectedText: selectedText || '',
+      },
+    });
+    return true;
+  }
+
+  if (message.type === 'PROCESS_TEXT') {
+    const { text, action } = message.payload;
+    const handler = TextSelectionHandler.getInstance();
+
+    // Use the handler's public method to process the text
+    if (action === 'translate') {
+      handler.processText('translate', text);
+    } else if (action === 'polish') {
+      handler.processText('polish', text);
+    }
+
+    sendResponse({ success: true });
+    return true;
+  }
+
+  return false;
+});
+
 export default InputHandler;
