@@ -1,10 +1,10 @@
 /**
- * Handles text selection and floating action button
+ * Handles text selection and floating action buttons
  */
 export class TextSelectionHandler {
   private static instance: TextSelectionHandler | null = null;
-  private floatingButton: HTMLElement | null = null;
-  private menuPopup: HTMLElement | null = null;
+  private translateButton: HTMLElement | null = null;
+  private polishButton: HTMLElement | null = null;
   private hideTimeout: number | null = null;
   private config: {
     targetLanguage: string;
@@ -48,13 +48,13 @@ export class TextSelectionHandler {
   static destroy(): void {
     if (TextSelectionHandler.instance) {
       const instance = TextSelectionHandler.instance;
-      if (instance.floatingButton) {
-        instance.floatingButton.remove();
-        instance.floatingButton = null;
+      if (instance.translateButton) {
+        instance.translateButton.remove();
+        instance.translateButton = null;
       }
-      if (instance.menuPopup) {
-        instance.menuPopup.remove();
-        instance.menuPopup = null;
+      if (instance.polishButton) {
+        instance.polishButton.remove();
+        instance.polishButton = null;
       }
       if (instance.streamingPreview) {
         instance.streamingPreview.remove();
@@ -164,7 +164,16 @@ export class TextSelectionHandler {
       return;
     }
 
-    // For regular text, don't show the button
+    // Handle regular text selection on the page
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const selectedText = selection.toString().trim();
+      if (selectedText.length >= 2) {
+        this.showFloatingButton(selectedText);
+        return;
+      }
+    }
+
     this.scheduleHide();
   }
 
@@ -175,30 +184,38 @@ export class TextSelectionHandler {
       this.hideTimeout = null;
     }
 
-    // Create or update floating button
-    if (!this.floatingButton) {
-      this.createFloatingButton();
+    // Create or update floating buttons
+    if (!this.translateButton || !this.polishButton) {
+      this.createFloatingButtons();
     }
 
-    this.positionFloatingButton();
-    this.floatingButton.style.display = 'flex';
-    this.floatingButton.dataset.selectedText = text;
+    this.positionFloatingButtons();
+    if (this.translateButton) {
+      this.translateButton.style.display = 'flex';
+      this.translateButton.dataset.selectedText = text;
+    }
+    if (this.polishButton) {
+      this.polishButton.style.display = 'flex';
+      this.polishButton.dataset.selectedText = text;
+    }
   }
 
-  private createFloatingButton(): void {
-    // Remove existing button if present to prevent duplicates
-    const existingButton = document.getElementById('tingly-polish-floating-button');
-    if (existingButton) {
-      existingButton.remove();
+  private createFloatingButtons(): void {
+    // Remove existing buttons if present to prevent duplicates
+    const existingContainer = document.getElementById('tingly-polish-floating-buttons-container');
+    if (existingContainer) {
+      existingContainer.remove();
     }
 
-    const button = document.createElement('div');
-    button.id = 'tingly-polish-floating-button';
-    button.innerHTML = `
-      <button class="tingly-action-btn" title="Tingly Polish">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-        </svg>
+    // Create container for both buttons
+    const container = document.createElement('div');
+    container.id = 'tingly-polish-floating-buttons-container';
+    container.innerHTML = `
+      <button class="tingly-translate-btn" title="Translate">
+        <span>T</span>
+      </button>
+      <button class="tingly-polish-action-btn" title="Polish">
+        <span>P</span>
       </button>
     `;
 
@@ -208,9 +225,10 @@ export class TextSelectionHandler {
       const style = document.createElement('style');
       style.id = 'tingly-polish-floating-button-style';
       style.textContent = `
-      #tingly-polish-floating-button {
+      #tingly-polish-floating-buttons-container {
         position: absolute;
         display: none;
+        gap: 6px;
         padding: 6px;
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         border: 1px solid #334155;
@@ -221,132 +239,105 @@ export class TextSelectionHandler {
         pointer-events: auto;
       }
 
-      #tingly-polish-floating-button .tingly-action-btn {
+      #tingly-polish-floating-buttons-container .tingly-translate-btn,
+      #tingly-polish-floating-buttons-container .tingly-polish-action-btn {
         width: 40px;
         height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-        border: 1px solid #6366f1;
         border-radius: 8px;
         cursor: pointer;
         transition: all 0.15s ease;
         color: #ffffff;
         padding: 0;
+        font-size: 16px;
+        font-weight: 600;
+        border: 1px solid transparent;
       }
 
-      #tingly-polish-floating-button .tingly-action-btn:hover {
+      #tingly-polish-floating-buttons-container .tingly-translate-btn {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        border-color: #6366f1;
+      }
+
+      #tingly-polish-floating-buttons-container .tingly-translate-btn:hover {
         background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
       }
 
-      #tingly-polish-menu-popup {
-        position: absolute;
-        display: none;
-        gap: 4px;
-        padding: 8px;
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        border: 1px solid #334155;
-        border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.3);
-        z-index: 999999;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        pointer-events: auto;
-        min-width: 140px;
+      #tingly-polish-floating-buttons-container .tingly-polish-action-btn {
+        background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+        border-color: #14b8a6;
       }
 
-      #tingly-polish-menu-popup .tingly-menu-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 14px;
-        background: transparent;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        color: #e2e8f0;
-        font-size: 14px;
-        font-weight: 500;
-        width: 100%;
-        text-align: left;
+      #tingly-polish-floating-buttons-container .tingly-polish-action-btn:hover {
+        background: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
       }
 
-      #tingly-polish-menu-popup .tingly-menu-item:hover {
-        background: rgba(99, 102, 241, 0.15);
-        color: #ffffff;
-      }
-
-      #tingly-polish-menu-popup .tingly-menu-item svg {
-        flex-shrink: 0;
-      }
-
-      #tingly-polish-menu-popup .tingly-menu-item.tingly-trans:hover {
-        background: rgba(99, 102, 241, 0.2);
-        color: #818cf8;
-      }
-
-      #tingly-polish-menu-popup .tingly-menu-item.tingly-polish:hover {
-        background: rgba(20, 184, 166, 0.2);
-        color: #2dd4bf;
-      }
-
-      #tingly-polish-menu-popup .tingly-menu-item.tingly-config:hover {
-        background: rgba(148, 163, 184, 0.15);
-        color: #cbd5e1;
-      }
-
-      #tingly-polish-menu-popup .tingly-menu-divider {
-        height: 1px;
-        background: #334155;
-        margin: 4px 0;
+      #tingly-polish-floating-buttons-container .tingly-translate-btn span,
+      #tingly-polish-floating-buttons-container .tingly-polish-action-btn span {
+        pointer-events: none;
       }
     `;
 
       document.head.appendChild(style);
     }
 
-    document.body.appendChild(button);
+    document.body.appendChild(container);
 
-    // Event listener - toggle menu on click
-    const actionBtn = button.querySelector('.tingly-action-btn') as HTMLButtonElement;
+    // Event listeners for buttons
+    const translateBtn = container.querySelector('.tingly-translate-btn') as HTMLButtonElement;
+    const polishBtn = container.querySelector('.tingly-polish-action-btn') as HTMLButtonElement;
 
-    if (actionBtn) {
-      actionBtn.addEventListener('click', (e) => {
+    if (translateBtn) {
+      translateBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this.toggleMenuPopup();
+        this.handleAction('translate');
       });
     }
 
-    this.floatingButton = button;
-    console.log('Tingly Polish: Floating button created and event listeners attached');
+    if (polishBtn) {
+      polishBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleAction('polish');
+      });
+    }
+
+    this.translateButton = translateBtn;
+    this.polishButton = polishBtn;
+    console.log('Tingly Polish: Floating buttons created and event listeners attached');
   }
 
-  private positionFloatingButton(): void {
-    if (!this.floatingButton) return;
+  private positionFloatingButtons(): void {
+    if (!this.translateButton || !this.polishButton) return;
 
     // Check if we're positioning for an input/textarea element
     const activeElement = document.activeElement;
+    const container = this.translateButton.parentElement;
+    if (!container) return;
 
     if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
       const rect = activeElement.getBoundingClientRect();
-      const buttonWidth = 52;
-      const buttonHeight = 52;
+      const containerWidth = 100;
+      const containerHeight = 52;
 
-      // Position button above the input element
-      let left = rect.left + rect.width / 2 - buttonWidth / 2;
-      let top = rect.top - buttonHeight - 8;
+      // Position container above the input element
+      let left = rect.left + rect.width / 2 - containerWidth / 2;
+      let top = rect.top - containerHeight - 8;
 
-      // Keep button within viewport bounds
+      // Keep container within viewport bounds
       const padding = 16;
-      left = Math.max(padding, Math.min(left, window.innerWidth - buttonWidth - padding));
-      top = Math.max(padding, Math.min(top, window.innerHeight - buttonHeight - padding));
+      left = Math.max(padding, Math.min(left, window.innerWidth - containerWidth - padding));
+      top = Math.max(padding, Math.min(top, window.innerHeight - containerHeight - padding));
 
-      this.floatingButton.style.left = `${left + window.scrollX}px`;
-      this.floatingButton.style.top = `${top + window.scrollY}px`;
+      container.style.left = `${left + window.scrollX}px`;
+      container.style.top = `${top + window.scrollY}px`;
       return;
     }
 
@@ -357,20 +348,20 @@ export class TextSelectionHandler {
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
 
-    // Position button above the selection
-    const buttonWidth = 52;
-    const buttonHeight = 52;
+    // Position container above the selection
+    const containerWidth = 100;
+    const containerHeight = 52;
 
-    let left = rect.left + rect.width / 2 - buttonWidth / 2;
-    let top = rect.top - buttonHeight - 8;
+    let left = rect.left + rect.width / 2 - containerWidth / 2;
+    let top = rect.top - containerHeight - 8;
 
-    // Keep button within viewport bounds
+    // Keep container within viewport bounds
     const padding = 16;
-    left = Math.max(padding, Math.min(left, window.innerWidth - buttonWidth - padding));
-    top = Math.max(padding, Math.min(top, window.innerHeight - buttonHeight - padding));
+    left = Math.max(padding, Math.min(left, window.innerWidth - containerWidth - padding));
+    top = Math.max(padding, Math.min(top, window.innerHeight - containerHeight - padding));
 
-    this.floatingButton.style.left = `${left + window.scrollX}px`;
-    this.floatingButton.style.top = `${top + window.scrollY}px`;
+    container.style.left = `${left + window.scrollX}px`;
+    container.style.top = `${top + window.scrollY}px`;
   }
 
   private scheduleHide(): void {
@@ -383,156 +374,17 @@ export class TextSelectionHandler {
     }, 200);
   }
 
-  private toggleMenuPopup(): void {
-    if (this.menuPopup && this.menuPopup.style.display === 'flex') {
-      this.hideMenuPopup();
-    } else {
-      this.showMenuPopup();
-    }
-  }
-
-  private showMenuPopup(): void {
-    // Hide any existing menu first
-    this.hideMenuPopup();
-
-    // Create menu popup if it doesn't exist
-    if (!this.menuPopup) {
-      this.createMenuPopup();
-    }
-
-    if (this.menuPopup && this.floatingButton) {
-      // Position menu below the floating button
-      const buttonRect = this.floatingButton.getBoundingClientRect();
-      const menuWidth = 160;
-      const menuHeight = 150;
-
-      let left = buttonRect.left + window.scrollX;
-      let top = buttonRect.bottom + window.scrollY + 4;
-
-      // Keep menu within viewport bounds
-      const padding = 16;
-      if (left + menuWidth > window.innerWidth - padding) {
-        left = window.innerWidth - menuWidth - padding;
-      }
-      if (left < padding) {
-        left = padding;
-      }
-      if (top + menuHeight > window.innerHeight + window.scrollY - padding) {
-        // Show above the button instead
-        top = buttonRect.top + window.scrollY - menuHeight - 4;
-      }
-
-      this.menuPopup.style.left = `${left}px`;
-      this.menuPopup.style.top = `${top}px`;
-      this.menuPopup.style.display = 'flex';
-      this.menuPopup.style.flexDirection = 'column';
-    }
-  }
-
-  private createMenuPopup(): void {
-    const menu = document.createElement('div');
-    menu.id = 'tingly-polish-menu-popup';
-    menu.innerHTML = `
-      <button class="tingly-menu-item tingly-trans" data-action="translate">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M5 8l6 6M5 14l6-6M9 5l10 0M9 19l10 0"/>
-        </svg>
-        <span>Translate</span>
-      </button>
-      <button class="tingly-menu-item tingly-polish" data-action="polish">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-        </svg>
-        <span>Polish</span>
-      </button>
-      <div class="tingly-menu-divider"></div>
-      <button class="tingly-menu-item tingly-config" data-action="config">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
-        </svg>
-        <span>Config</span>
-      </button>
-    `;
-
-    document.body.appendChild(menu);
-
-    // Add event listeners to menu items
-    const transBtn = menu.querySelector('[data-action="translate"]') as HTMLButtonElement;
-    const polishBtn = menu.querySelector('[data-action="polish"]') as HTMLButtonElement;
-    const configBtn = menu.querySelector('[data-action="config"]') as HTMLButtonElement;
-
-    if (transBtn) {
-      transBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.hideMenuPopup();
-        this.handleAction('translate');
-      });
-    }
-
-    if (polishBtn) {
-      polishBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.hideMenuPopup();
-        this.handleAction('polish');
-      });
-    }
-
-    if (configBtn) {
-      configBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.hideMenuPopup();
-        this.openConfigPage();
-      });
-    }
-
-    this.menuPopup = menu;
-
-    // Close menu when clicking outside
-    document.addEventListener('click', this.handleDocumentClick);
-  }
-
-  private handleDocumentClick = (e: MouseEvent): void => {
-    if (this.menuPopup && this.floatingButton) {
-      const target = e.target as Node;
-      if (!this.menuPopup.contains(target) && !this.floatingButton.contains(target)) {
-        this.hideMenuPopup();
-      }
-    }
-  };
-
-  private openConfigPage(): void {
-    // Open the full settings page
-    chrome.runtime.sendMessage({
-      type: 'OPEN_SETTINGS',
-      payload: {},
-    }).catch((error) => {
-      console.error('Tingly Polish: Failed to open settings', error);
-      // Fallback: try to open settings URL directly
-      chrome.tabs.create({ url: chrome.runtime.getURL('src/settings/index.html') }).catch(() => {
-        console.error('Tingly Polish: Failed to create settings tab');
-      });
-    });
-  }
-
   private hideFloatingButton(): void {
-    if (this.floatingButton) {
-      this.floatingButton.style.display = 'none';
+    if (this.translateButton) {
+      this.translateButton.style.display = 'none';
     }
-    this.hideMenuPopup();
-  }
-
-  private hideMenuPopup(): void {
-    if (this.menuPopup) {
-      this.menuPopup.style.display = 'none';
+    if (this.polishButton) {
+      this.polishButton.style.display = 'none';
     }
   }
 
   private async handleAction(type: 'translate' | 'polish', text?: string): Promise<void> {
-    const selectedText = text || this.floatingButton?.dataset.selectedText;
+    const selectedText = text || this.translateButton?.dataset.selectedText || this.polishButton?.dataset.selectedText;
     if (!selectedText) return;
 
     console.log('Tingly Polish: Processing selected text', { type, selectedText });
@@ -985,20 +837,49 @@ export class TextSelectionHandler {
       activeElement.dispatchEvent(new Event('input', { bubbles: true }));
       return;
     }
+
+    // Handle regular text selection on the page (contenteditable or regular text)
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+
+      // Create a text node with the replacement text
+      const textNode = document.createTextNode(text);
+
+      // Delete the selected content and insert the new text
+      range.deleteContents();
+      range.insertNode(textNode);
+
+      // Move the selection to after the inserted text
+      range.setStartAfter(textNode);
+      range.setEndAfter(textNode);
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      return;
+    }
   }
 
   private showLoading(): void {
-    // Show loading indicator on the floating button
-    if (this.floatingButton) {
-      this.floatingButton.style.opacity = '0.6';
-      this.floatingButton.style.pointerEvents = 'none';
+    // Show loading indicator on the floating buttons
+    if (this.translateButton) {
+      this.translateButton.style.opacity = '0.6';
+      this.translateButton.style.pointerEvents = 'none';
+    }
+    if (this.polishButton) {
+      this.polishButton.style.opacity = '0.6';
+      this.polishButton.style.pointerEvents = 'none';
     }
   }
 
   private hideLoading(): void {
-    if (this.floatingButton) {
-      this.floatingButton.style.opacity = '1';
-      this.floatingButton.style.pointerEvents = 'auto';
+    if (this.translateButton) {
+      this.translateButton.style.opacity = '1';
+      this.translateButton.style.pointerEvents = 'auto';
+    }
+    if (this.polishButton) {
+      this.polishButton.style.opacity = '1';
+      this.polishButton.style.pointerEvents = 'auto';
     }
   }
 
@@ -1007,11 +888,14 @@ export class TextSelectionHandler {
    */
   public processText(type: 'translate' | 'polish', text: string): void {
     // Create a temporary floating button for the streaming preview to work
-    if (!this.floatingButton) {
-      this.createFloatingButton();
+    if (!this.translateButton || !this.polishButton) {
+      this.createFloatingButtons();
     }
-    if (this.floatingButton) {
-      this.floatingButton.dataset.selectedText = text;
+    if (this.translateButton) {
+      this.translateButton.dataset.selectedText = text;
+    }
+    if (this.polishButton) {
+      this.polishButton.dataset.selectedText = text;
     }
     this.handleAction(type, text);
   }
