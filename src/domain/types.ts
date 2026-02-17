@@ -167,6 +167,9 @@ export type MessageType =
   | 'CLEAR_HISTORY'
   | 'PROCESS_TEXT'
   | 'PROCESS_TEXT_STREAM'
+  | 'CANCEL_STREAM'
+  | 'STREAM_CHUNK'
+  | 'STREAM_ERROR'
   | 'REPLACE_TEXT';
 
 export type Message<T = unknown> = {
@@ -179,21 +182,11 @@ export type ProcessTextPayload = {
   text: string;
   type: ProcessType;
   elementInfo?: InputElementInfo;
-  elementInfoSerializable?: SerializableElementInfo;
 };
 
 export type ReplaceTextPayload = {
   result: string;
   elementInfo: InputElementInfo;
-};
-
-export type SerializableElementInfo = {
-  type: 'input' | 'textarea' | 'contenteditable';
-  value: string;
-  selectionStart?: number;
-  selectionEnd?: number;
-  elementSelector?: string;
-  url?: string;
 };
 
 export type ProcessTextResponse = {

@@ -1,7 +1,7 @@
 import { ChromeConfigRepository, ChromeHistoryRepository } from '../infrastructure/storage/ChromeStorageAdapter.js';
 import { LLMClientFactory } from '../infrastructure/llm/LLMClients.js';
 import { ChromeMessageBus, MessageTopics } from '../infrastructure/messaging/MessageBus.js';
-import type { Config, HistoryEntry, ProcessTextPayload, SerializableElementInfo } from '../domain/types.js';
+import type { Config, HistoryEntry, ProcessTextPayload } from '../domain/types.js';
 import { textProcessor } from '../domain/services/TextProcessor.js';
 
 /**
@@ -14,6 +14,7 @@ class ServiceWorker {
   private messageBus: ChromeMessageBus;
   private llmClient: ReturnType<typeof LLMClientFactory.create> | null = null;
   private currentConfig: Config | null = null;
+  private activeStreams = new Map<string, AbortController>();
 
   constructor() {
     this.configRepository = new ChromeConfigRepository();
@@ -135,6 +136,13 @@ class ServiceWorker {
         return true; // Keep channel open for async response
       }
 
+      if (message.type === 'CANCEL_STREAM') {
+        const { streamId } = message.payload;
+        this.cancelStream(streamId);
+        sendResponse({ success: true });
+        return true;
+      }
+
       if (message.type === 'OPEN_SETTINGS') {
         // Open settings page in a new tab
         chrome.tabs.create({
@@ -202,17 +210,23 @@ class ServiceWorker {
    * Process text for translation or polish with streaming
    */
   private async processTextStream(
-    payload: ProcessTextPayload,
+    payload: ProcessTextPayload & { streamId?: string },
     tabId: number
   ): Promise<void> {
-    const { text, type } = payload;
+    const { text, type, streamId } = payload;
 
-    console.log('Tingly Polish: Starting stream processing', { text, type, tabId });
+    console.log('Tingly Polish: Starting stream processing', { text, type, tabId, streamId });
 
     if (!this.currentConfig || !this.llmClient) {
       const error = 'Extension not properly configured';
       console.error('Tingly Polish:', error);
       throw new Error(error);
+    }
+
+    // Create abort controller for this stream
+    const abortController = new AbortController();
+    if (streamId) {
+      this.activeStreams.set(streamId, abortController);
     }
 
     try {
@@ -234,6 +248,12 @@ class ServiceWorker {
 
       // Stream chunks to content script
       for await (const chunk of stream) {
+        // Check if stream was cancelled
+        if (abortController.signal.aborted) {
+          console.log('Tingly Polish: Stream cancelled');
+          return;
+        }
+
         chunkCount++;
         accumulatedResult += chunk;
 
@@ -255,6 +275,12 @@ class ServiceWorker {
           console.warn('Tingly Polish: Failed to send chunk to tab', sendError);
           break;
         }
+      }
+
+      // Check if stream was cancelled during iteration
+      if (abortController.signal.aborted) {
+        console.log('Tingly Polish: Stream cancelled after completion');
+        return;
       }
 
       console.log(`Tingly Polish: Stream completed with ${chunkCount} chunks`);
@@ -300,6 +326,22 @@ class ServiceWorker {
       }
 
       throw error;
+    } finally {
+      // Clean up the stream controller
+      if (streamId) {
+        this.activeStreams.delete(streamId);
+      }
+    }
+  }
+
+  /**
+   * Cancel an active stream
+   */
+  private cancelStream(streamId: string): void {
+    const controller = this.activeStreams.get(streamId);
+    if (controller) {
+      controller.abort();
+      console.log('Tingly Polish: Stream cancelled', { streamId });
     }
   }
 }
