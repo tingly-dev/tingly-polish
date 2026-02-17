@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Box, Typography, TextField } from '@mui/material';
+import { Box, Typography, TextField, InputAdornment } from '@mui/material';
+import { Keyboard as KeyboardIcon } from '@mui/icons-material';
 
 interface TriggerKeysProps {
   label: string;
@@ -10,13 +11,11 @@ interface TriggerKeysProps {
 
 // Display name for special keys
 const KEY_NAMES: Record<string, string> = {
-  ' ': 'Space',
-  '\t': 'Tab',
-  '\n': 'Enter',
-  '\r': 'Return',
+  ' ': '␣',
+  '\t': '⇥',
+  '\n': '↵',
+  '\r': '↩',
   '\b': '⌫',
-  '\f': 'Form Feed',
-  '\v': 'Vertical Tab',
 };
 
 // Get display text for a key
@@ -24,45 +23,33 @@ function getKeyDisplay(char: string): string {
   return KEY_NAMES[char] || char;
 }
 
-// Check if a character is a special key (takes more space)
-function isSpecialKey(char: string): boolean {
-  return char in KEY_NAMES;
-}
-
-// Visual key display component (read-only)
-function KeyDisplay({ char }: { char: string }) {
-  const isSpecial = isSpecialKey(char);
-  const display = getKeyDisplay(char);
-
+// Visual key display component
+function KeyChip({ char }: { char: string }) {
   return (
     <Box
       sx={{
-        minWidth: isSpecial ? 65 : 36,
-        height: 32,
-        px: 1,
+        minWidth: 24,
+        height: 22,
+        px: 0.5,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(180deg, rgba(99, 102, 241, 0.12) 0%, rgba(99, 102, 241, 0.04) 100%)',
+        background: 'linear-gradient(180deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.05) 100%)',
         border: '1px solid',
         borderColor: 'primary.main',
-        borderRadius: '5px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+        borderRadius: '4px',
       }}
     >
       <Typography
         sx={{
-          fontFamily: isSpecial ? 'Space Grotesk, sans-serif' : 'monospace',
-          fontSize: isSpecial ? '0.6rem' : '0.85rem',
+          fontFamily: 'monospace',
+          fontSize: '0.75rem',
           fontWeight: 500,
           color: 'primary.main',
-          textAlign: 'center',
-          textTransform: isSpecial ? 'uppercase' : 'none',
-          letterSpacing: isSpecial ? '0.05em' : '0',
-          lineHeight: 1.2,
+          lineHeight: 1,
         }}
       >
-        {display}
+        {getKeyDisplay(char)}
       </Typography>
     </Box>
   );
@@ -73,53 +60,27 @@ export function TriggerKeys({ label, value, onChange, helperText }: TriggerKeysP
 
   return (
     <Box>
-      <Typography
-        sx={{
-          fontFamily: 'Space Grotesk, sans-serif',
-          fontSize: '0.875rem',
-          fontWeight: 600,
-          color: 'text.secondary',
-          mb: 1,
-        }}
-      >
-        {label}
-      </Typography>
-
-      {/* Key display preview */}
-      <Box
-        sx={{
-          minHeight: 40,
-          mb: 1,
-          p: 1.5,
-          bgcolor: 'rgba(99, 102, 241, 0.03)',
-          border: '1px solid',
-        borderColor: 'rgba(99, 102, 241, 0.2)',
-        borderRadius: '10px',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 0.6,
-        alignItems: 'center',
-        '&:empty': {
-          minHeight: 40,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          '&::before': {
-            content: '"No trigger pattern set"',
-            color: 'text.disabled',
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+        <KeyboardIcon sx={{ fontSize: '1.1rem', color: 'text.secondary' }} />
+        <Typography
+          sx={{
             fontFamily: 'Inter, sans-serif',
-            fontSize: '0.75rem',
-            fontStyle: 'italic',
-          },
-        },
-      }}
-      >
-        {keys.length === 0 ? null : keys.map((char, index) => (
-          <KeyDisplay key={index} char={char} />
-        ))}
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: 'text.primary',
+          }}
+        >
+          {label}
+        </Typography>
+        {keys.length > 0 && (
+          <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto' }}>
+            {keys.map((char, index) => (
+              <KeyChip key={index} char={char} />
+            ))}
+          </Box>
+        )}
       </Box>
 
-      {/* Edit input */}
       <TextField
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -127,11 +88,20 @@ export function TriggerKeys({ label, value, onChange, helperText }: TriggerKeysP
         fullWidth
         size="small"
         helperText={helperText}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
+                Pattern
+              </Typography>
+            </InputAdornment>
+          ),
+        }}
         sx={{
           '& .MuiOutlinedInput-input': {
             fontFamily: 'monospace',
             fontSize: '0.85rem',
-            letterSpacing: '0.1em',
+            letterSpacing: '0.15em',
           },
         }}
       />
