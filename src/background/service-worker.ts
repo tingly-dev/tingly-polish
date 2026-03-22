@@ -1,7 +1,7 @@
 import { ChromeConfigRepository, ChromeHistoryRepository } from '../infrastructure/storage/ChromeStorageAdapter.js';
 import { LLMClientFactory } from '../infrastructure/llm/LLMClients.js';
 import { ChromeMessageBus, MessageTopics } from '../infrastructure/messaging/MessageBus.js';
-import type { Config, HistoryEntry, ProcessTextPayload } from '../domain/types.js';
+import type { Config, HistoryEntry, ProcessTextPayload, ProcessDirectTextPayload, ProcessDirectTextResponse } from '../domain/types.js';
 import { textProcessor } from '../domain/services/TextProcessor.js';
 
 /**
@@ -136,6 +136,20 @@ class ServiceWorker {
         return true; // Keep channel open for async response
       }
 
+      if (message.type === 'PROCESS_DIRECT_TEXT') {
+        this.processDirectText(message.payload)
+          .then(result => {
+            sendResponse({ success: true, data: result });
+          })
+          .catch(error => {
+            sendResponse({
+              success: false,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+          });
+        return true; // Keep channel open for async response
+      }
+
       if (message.type === 'CANCEL_STREAM') {
         const { streamId } = message.payload;
         this.cancelStream(streamId);
@@ -166,7 +180,7 @@ class ServiceWorker {
    * Process text for translation or polish
    */
   private async processText(payload: ProcessTextPayload): Promise<{ result: string }> {
-    const { text, type, elementInfoSerializable } = payload;
+    const { text, type } = payload;
 
     if (!this.currentConfig || !this.llmClient) {
       throw new Error('Extension not properly configured');
@@ -178,7 +192,7 @@ class ServiceWorker {
       if (type === 'translate') {
         result = await this.llmClient.translate(
           text,
-          this.currentConfig.targetLanguage
+          this.currentConfig.targetLanguageT1 || 'English'
         );
       } else {
         result = await this.llmClient.polish(text);
@@ -191,10 +205,6 @@ class ServiceWorker {
         processed: result,
         type,
         timestamp: Date.now(),
-        metadata: elementInfoSerializable ? {
-          url: elementInfoSerializable.url,
-          elementSelector: elementInfoSerializable.elementSelector,
-        } : undefined,
       };
 
       await this.historyRepository.addEntry(historyEntry);
@@ -202,6 +212,48 @@ class ServiceWorker {
       return { result };
     } catch (error) {
       console.error('Tingly Polish: Processing failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process text directly (for Quick Process panel)
+   */
+  private async processDirectText(payload: ProcessDirectTextPayload): Promise<ProcessDirectTextResponse> {
+    const { text, type } = payload;
+
+    if (!this.currentConfig || !this.llmClient) {
+      throw new Error('Extension not properly configured');
+    }
+
+    try {
+      let result: string;
+      let targetLanguage: string | undefined;
+
+      if (type === 'translate-t1') {
+        targetLanguage = this.currentConfig.targetLanguageT1;
+        result = await this.llmClient.translate(text, targetLanguage);
+      } else if (type === 'translate-t2') {
+        targetLanguage = this.currentConfig.targetLanguageT2;
+        result = await this.llmClient.translate(text, targetLanguage);
+      } else {
+        result = await this.llmClient.polish(text);
+      }
+
+      // Save to history
+      const historyEntry: HistoryEntry = {
+        id: textProcessor.generateId(text),
+        original: text,
+        processed: result,
+        type: type === 'polish' ? 'polish' : 'translate',
+        timestamp: Date.now(),
+      };
+
+      await this.historyRepository.addEntry(historyEntry);
+
+      return { result, targetLanguage };
+    } catch (error) {
+      console.error('Tingly Polish: Direct processing failed', error);
       throw error;
     }
   }
@@ -236,7 +288,7 @@ class ServiceWorker {
         console.log('Tingly Polish: Starting translate stream');
         stream = this.llmClient.translateStream(
           text,
-          this.currentConfig.targetLanguage
+          this.currentConfig.targetLanguageT1 || 'English'
         );
       } else {
         console.log('Tingly Polish: Starting polish stream');

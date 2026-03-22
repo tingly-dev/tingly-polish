@@ -17,6 +17,7 @@ import {
   History as HistoryIcon,
   Webhook as WebIcon,
   Warning as WarningIcon,
+  Bolt as BoltIcon,
 } from '@mui/icons-material';
 import { SettingsLayout } from './components/SettingsLayout';
 import { NavItem } from './components/NavItem';
@@ -26,10 +27,11 @@ import { TriggersSection } from './components/TriggersSection';
 import { PromptsSection } from './components/PromptsSection';
 import { HistorySection } from './components/HistorySection';
 import { SiteMappingsSection } from './components/SiteMappingsSection';
+import { QuickProcessPage } from '../popup/components/QuickProcessPage';
 import { SettingsProvider, useSettingsContext } from './contexts/SettingsContext';
 import { theme } from '../popup/theme';
 
-type Section = 'api' | 'triggers' | 'prompts' | 'history' | 'sitemappings';
+type Section = 'api' | 'triggers' | 'prompts' | 'history' | 'sitemappings' | 'quickprocess';
 
 interface SectionConfig {
   id: Section;
@@ -62,6 +64,12 @@ const sections: SectionConfig[] = [
     label: 'Site Mappings',
     icon: <WebIcon />,
     component: <SiteMappingsSection />,
+  },
+  {
+    id: 'quickprocess',
+    label: 'Quick Process',
+    icon: <BoltIcon />,
+    component: <QuickProcessPage />,
   },
   {
     id: 'history',

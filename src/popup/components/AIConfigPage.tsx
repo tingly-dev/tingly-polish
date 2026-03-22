@@ -14,7 +14,6 @@ import {
 import {
   Save as SaveIcon,
   Restore as RestoreIcon,
-  Settings as SettingsIcon,
   Translate as TranslateIcon,
   Cloud as CloudIcon,
 } from '@mui/icons-material';
@@ -34,10 +33,13 @@ export function AIConfigPage() {
     systemPrompt: '',
     userPromptTranslate: '',
     userPromptPolish: '',
-    triggerTranslate: '   ',
+    triggerTranslateT1: '   ',
+    triggerTranslateT2: '   ',
     triggerPolish: '   ',
+    targetLanguageT1: 'English',
+    targetLanguageT2: 'Chinese',
     useMock: true,
-    targetLanguage: 'English',
+    siteMappings: [],
   });
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -237,32 +239,78 @@ export function AIConfigPage() {
               }}
             >
               <Box display="flex" flexDirection="column" gap={2.5}>
-                <TriggerKeys
-                  label="Translation Trigger"
-                  value={config.triggerTranslate}
-                  onChange={(value) => updateField('triggerTranslate', value)}
-                  helperText="Click keys to set the pattern that triggers translation"
-                />
-                <TriggerKeys
-                  label="Polish Trigger"
-                  value={config.triggerPolish}
-                  onChange={(value) => updateField('triggerPolish', value)}
-                  helperText="Click keys to set the pattern that triggers polish"
-                />
-                <TextField
-                  select
-                  label="Target Language"
-                  value={config.targetLanguage}
-                  onChange={(e) => updateField('targetLanguage', e.target.value)}
-                  fullWidth
-                  size="small"
-                >
-                  {['English', 'Chinese', 'Japanese', 'Korean', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Arabic'].map((lang) => (
-                    <MenuItem key={lang} value={lang}>
-                      {lang}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                {/* Translation T1 */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, color: 'primary.main' }}>
+                    Translation T1 (Primary)
+                  </Typography>
+                  <TriggerKeys
+                    label="Translation T1 Trigger"
+                    value={config.triggerTranslateT1}
+                    onChange={(value) => updateField('triggerTranslateT1', value)}
+                    helperText="Click keys to set the pattern that triggers T1 translation"
+                  />
+                  <TextField
+                    select
+                    label="T1 Target Language"
+                    value={config.targetLanguageT1}
+                    onChange={(e) => updateField('targetLanguageT1', e.target.value)}
+                    fullWidth
+                    size="small"
+                    sx={{ mt: 2 }}
+                  >
+                    {['English', 'Chinese', 'Japanese', 'Korean', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Arabic'].map((lang) => (
+                      <MenuItem key={lang} value={lang}>
+                        {lang}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+
+                <Box sx={{ borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+
+                {/* Translation T2 */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, color: 'secondary.main' }}>
+                    Translation T2 (Secondary)
+                  </Typography>
+                  <TriggerKeys
+                    label="Translation T2 Trigger"
+                    value={config.triggerTranslateT2}
+                    onChange={(value) => updateField('triggerTranslateT2', value)}
+                    helperText="Click keys to set the pattern that triggers T2 translation"
+                  />
+                  <TextField
+                    select
+                    label="T2 Target Language"
+                    value={config.targetLanguageT2}
+                    onChange={(e) => updateField('targetLanguageT2', e.target.value)}
+                    fullWidth
+                    size="small"
+                    sx={{ mt: 2 }}
+                  >
+                    {['English', 'Chinese', 'Japanese', 'Korean', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Arabic'].map((lang) => (
+                      <MenuItem key={lang} value={lang}>
+                        {lang}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+
+                <Box sx={{ borderTop: '1px solid', borderColor: 'divider', my: 1 }} />
+
+                {/* Polish */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
+                    Polish
+                  </Typography>
+                  <TriggerKeys
+                    label="Polish Trigger"
+                    value={config.triggerPolish}
+                    onChange={(value) => updateField('triggerPolish', value)}
+                    helperText="Click keys to set the pattern that triggers polish"
+                  />
+                </Box>
               </Box>
             </Box>
           </Box>

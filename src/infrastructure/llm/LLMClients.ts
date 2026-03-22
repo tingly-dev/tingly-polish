@@ -259,10 +259,13 @@ export class MockLLMClient implements ILLMClient {
     systemPrompt: '',
     userPromptTranslate: '',
     userPromptPolish: '',
-    triggerTranslate: '   ',
+    triggerTranslateT1: '   ',
+    triggerTranslateT2: '   ',
     triggerPolish: '   ',
+    targetLanguageT1: 'English',
+    targetLanguageT2: 'Chinese',
     useMock: true,
-    targetLanguage: 'English',
+    siteMappings: [],
   }) {
     this.config = config;
   }

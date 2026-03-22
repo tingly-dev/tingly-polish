@@ -9,11 +9,17 @@ import { TextSelectionHandler } from './TextSelectionHandler.js';
 export class InputHandler {
   private monitoredElements: WeakSet<Element> = new WeakSet();
   private config: {
-    triggerTranslate: string;
+    triggerTranslateT1: string;
+    triggerTranslateT2: string;
     triggerPolish: string;
+    targetLanguageT1: string;
+    targetLanguageT2: string;
   } = {
-    triggerTranslate: '   ',
+    triggerTranslateT1: '   ',
+    triggerTranslateT2: '   ',
     triggerPolish: '   ',
+    targetLanguageT1: 'English',
+    targetLanguageT2: 'Chinese',
   };
 
   /** Standard input selectors only */
@@ -39,8 +45,11 @@ export class InputHandler {
 
       if (response?.data) {
         this.config = {
-          triggerTranslate: response.data.triggerTranslate,
+          triggerTranslateT1: response.data.triggerTranslateT1,
+          triggerTranslateT2: response.data.triggerTranslateT2,
           triggerPolish: response.data.triggerPolish,
+          targetLanguageT1: response.data.targetLanguageT1,
+          targetLanguageT2: response.data.targetLanguageT2,
         };
       }
     } catch {
@@ -54,8 +63,11 @@ export class InputHandler {
         const newConfig = changes['tingly-polish-config'].newValue;
         if (newConfig) {
           this.config = {
-            triggerTranslate: newConfig.triggerTranslate,
+            triggerTranslateT1: newConfig.triggerTranslateT1,
+            triggerTranslateT2: newConfig.triggerTranslateT2,
             triggerPolish: newConfig.triggerPolish,
+            targetLanguageT1: newConfig.targetLanguageT1,
+            targetLanguageT2: newConfig.targetLanguageT2,
           };
         }
       }
@@ -153,15 +165,27 @@ export class InputHandler {
   private async processTrigger(info: InputElementInfo): Promise<void> {
     const { value } = info;
 
-    // Check for translate trigger
-    const translateResult = triggerDetector.detect(
+    // Check for translate T1 trigger
+    const translateT1Result = triggerDetector.detect(
       value,
-      this.config.triggerTranslate,
+      this.config.triggerTranslateT1,
       'translate'
     );
 
-    if (translateResult.detected && translateResult.remainingText !== undefined) {
-      await this.handleTrigger('translate', translateResult.remainingText, info);
+    if (translateT1Result.detected && translateT1Result.remainingText !== undefined) {
+      await this.handleTrigger('translate-t1', translateT1Result.remainingText, info, this.config.targetLanguageT1);
+      return;
+    }
+
+    // Check for translate T2 trigger
+    const translateT2Result = triggerDetector.detect(
+      value,
+      this.config.triggerTranslateT2,
+      'translate'
+    );
+
+    if (translateT2Result.detected && translateT2Result.remainingText !== undefined) {
+      await this.handleTrigger('translate-t2', translateT2Result.remainingText, info, this.config.targetLanguageT2);
       return;
     }
 
@@ -181,9 +205,10 @@ export class InputHandler {
    * Handle detected trigger
    */
   private async handleTrigger(
-    type: 'translate' | 'polish',
+    type: 'translate-t1' | 'translate-t2' | 'polish',
     text: string,
-    info: InputElementInfo
+    info: InputElementInfo,
+    targetLanguage?: string
   ): Promise<void> {
     if (!text.trim()) {
       return;
@@ -202,7 +227,7 @@ export class InputHandler {
         this.hideLoadingIndicator();
       };
 
-      await handler.processTextWithCallback(type, text, onReplace, onCleanup);
+      await handler.processTextWithCallback(type === 'polish' ? 'polish' : 'translate', text, onReplace, onCleanup, targetLanguage);
     } catch (error) {
       console.error('Tingly Polish: Failed to process text', error);
       this.hideLoadingIndicator();

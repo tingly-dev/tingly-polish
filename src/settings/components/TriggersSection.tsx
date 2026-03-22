@@ -173,11 +173,11 @@ export function TriggersSection() {
       {/* Content */}
       <Box sx={{ flex: 1, overflowY: 'auto', p: 4 }}>
         <Box display="flex" flexDirection="column" gap={4} maxWidth={800}>
-          {/* Trigger Keys */}
+          {/* Translation T1 */}
           <Box>
             <Box display="flex" alignItems="center" gap={1} mb={3}>
               <TranslateIcon color="primary" sx={{ fontSize: '1.1rem' }} />
-              <Typography variant="h6">Trigger Keys</Typography>
+              <Typography variant="h6">Translation T1 (Primary)</Typography>
             </Box>
 
             <Box
@@ -191,26 +191,34 @@ export function TriggersSection() {
             >
               <Box display="flex" flexDirection="column" gap={3}>
                 <TriggerKeys
-                  label="Translation Trigger"
-                  value={displayConfig.triggerTranslate || ''}
-                  onChange={(value) => handleFieldChange('triggerTranslate', value)}
-                  helperText="Click keys to set the pattern that triggers translation"
+                  label="Translation T1 Trigger"
+                  value={displayConfig.triggerTranslateT1 || ''}
+                  onChange={(value) => handleFieldChange('triggerTranslateT1', value)}
+                  helperText="Click keys to set the pattern that triggers T1 translation"
                 />
-                <TriggerKeys
-                  label="Polish Trigger"
-                  value={displayConfig.triggerPolish || ''}
-                  onChange={(value) => handleFieldChange('triggerPolish', value)}
-                  helperText="Click keys to set the pattern that triggers polish"
-                />
+                <TextField
+                  select
+                  label="T1 Target Language"
+                  value={displayConfig.targetLanguageT1 || 'English'}
+                  onChange={(e) => handleFieldChange('targetLanguageT1', e.target.value)}
+                  fullWidth
+                  size="small"
+                >
+                  {['English', 'Chinese', 'Japanese', 'Korean', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Arabic'].map((lang) => (
+                    <MenuItem key={lang} value={lang}>
+                      {lang}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Box>
             </Box>
           </Box>
 
-          {/* Target Language */}
+          {/* Translation T2 */}
           <Box>
             <Box display="flex" alignItems="center" gap={1} mb={3}>
               <TranslateIcon color="secondary" sx={{ fontSize: '1.1rem' }} />
-              <Typography variant="h6">Translation Settings</Typography>
+              <Typography variant="h6">Translation T2 (Secondary)</Typography>
             </Box>
 
             <Box
@@ -222,20 +230,53 @@ export function TriggersSection() {
                 borderColor: 'divider',
               }}
             >
-              <TextField
-                select
-                label="Target Language"
-                value={displayConfig.targetLanguage || 'English'}
-                onChange={(e) => handleFieldChange('targetLanguage', e.target.value)}
-                fullWidth
-                size="small"
-              >
-                {['English', 'Chinese', 'Japanese', 'Korean', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Arabic'].map((lang) => (
-                  <MenuItem key={lang} value={lang}>
-                    {lang}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Box display="flex" flexDirection="column" gap={3}>
+                <TriggerKeys
+                  label="Translation T2 Trigger"
+                  value={displayConfig.triggerTranslateT2 || ''}
+                  onChange={(value) => handleFieldChange('triggerTranslateT2', value)}
+                  helperText="Click keys to set the pattern that triggers T2 translation"
+                />
+                <TextField
+                  select
+                  label="T2 Target Language"
+                  value={displayConfig.targetLanguageT2 || 'Chinese'}
+                  onChange={(e) => handleFieldChange('targetLanguageT2', e.target.value)}
+                  fullWidth
+                  size="small"
+                >
+                  {['English', 'Chinese', 'Japanese', 'Korean', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Arabic'].map((lang) => (
+                    <MenuItem key={lang} value={lang}>
+                      {lang}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Polish Trigger */}
+          <Box>
+            <Box display="flex" alignItems="center" gap={1} mb={3}>
+              <TranslateIcon sx={{ fontSize: '1.1rem', color: 'success.main' }} />
+              <Typography variant="h6">Polish</Typography>
+            </Box>
+
+            <Box
+              sx={{
+                p: 4,
+                bgcolor: 'background.paper',
+                borderRadius: '16px',
+                border: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
+              <TriggerKeys
+                label="Polish Trigger"
+                value={displayConfig.triggerPolish || ''}
+                onChange={(value) => handleFieldChange('triggerPolish', value)}
+                helperText="Click keys to set the pattern that triggers polish"
+              />
             </Box>
           </Box>
 

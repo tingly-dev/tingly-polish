@@ -26,21 +26,52 @@ export class ChromeConfigRepository implements IConfigRepository {
     const stored = result[STORAGE_KEYS.CONFIG];
 
     if (stored) {
+      // Migrate legacy config to new T1/T2 format
+      const migrated = this.migrateConfig(stored);
       // Merge with defaults to handle new fields
       // For siteMappings, use stored value if it exists and is not empty, otherwise use defaults
       this.cachedConfig = {
         ...DEFAULT_CONFIG,
-        ...stored,
-        siteMappings: stored.siteMappings && stored.siteMappings.length > 0
-          ? stored.siteMappings
+        ...migrated,
+        siteMappings: migrated.siteMappings && migrated.siteMappings.length > 0
+          ? migrated.siteMappings
           : DEFAULT_CONFIG.siteMappings,
       };
+      // Save migrated config if changes were made
+      if (stored !== migrated) {
+        await this.saveConfig(this.cachedConfig);
+      }
     } else {
       this.cachedConfig = { ...DEFAULT_CONFIG };
       await this.saveConfig(this.cachedConfig);
     }
 
     return this.cachedConfig;
+  }
+
+  /**
+   * Migrate legacy config to new T1/T2 format
+   */
+  private migrateConfig(config: Partial<Config>): Partial<Config> {
+    const migrated = { ...config };
+
+    // Migrate T1 from legacy fields
+    if (!migrated.targetLanguageT1 && migrated.targetLanguage) {
+      migrated.targetLanguageT1 = migrated.targetLanguage;
+    }
+    if (!migrated.triggerTranslateT1 && migrated.triggerTranslate) {
+      migrated.triggerTranslateT1 = migrated.triggerTranslate;
+    }
+
+    // Set T2 defaults if not present
+    if (!migrated.targetLanguageT2) {
+      migrated.targetLanguageT2 = 'Chinese';
+    }
+    if (!migrated.triggerTranslateT2) {
+      migrated.triggerTranslateT2 = '   ';
+    }
+
+    return migrated;
   }
 
   async updateConfig(partial: Partial<Config>): Promise<Config> {

@@ -127,3 +127,16 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Process text directly (for Quick Process panel)
+ */
+export async function processDirectText(
+  text: string,
+  type: 'translate-t1' | 'translate-t2' | 'polish'
+): Promise<{ result: string; targetLanguage?: string }> {
+  return sendMessage<{ text: string; type: 'translate-t1' | 'translate-t2' | 'polish' }, { result: string; targetLanguage?: string }>(
+    'PROCESS_DIRECT_TEXT',
+    { text, type }
+  );
+}

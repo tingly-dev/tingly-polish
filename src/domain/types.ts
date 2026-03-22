@@ -27,13 +27,21 @@ export interface Config {
   userPromptTranslate: string;
   userPromptPolish: string;
 
-  // Trigger patterns (default: triple space)
-  triggerTranslate: string;
+  // Trigger patterns
+  triggerTranslateT1: string;
+  triggerTranslateT2: string;
   triggerPolish: string;
+
+  // Target languages (dual translation support)
+  targetLanguageT1: string;
+  targetLanguageT2: string;
+
+  // Legacy fields (deprecated, kept for migration)
+  targetLanguage?: string;
+  triggerTranslate?: string;
 
   // Settings
   useMock: boolean;
-  targetLanguage: string;
 
   // Custom site mappings
   siteMappings: SiteMapping[];
@@ -81,10 +89,12 @@ Keep format including space, newline, divider, list and so on.
 Detect language in text and Keep original language even mixture.`,
   userPromptTranslate: `Translate the following text to {targetLanguage}:\n\n{text}\n\nOnly return the translated text, no explanations.`,
   userPromptPolish: `Improve and polish the following text for better clarity and flow:\n\n{text}\n\nOnly return the improved text, no explanations.`,
-  triggerTranslate: '   ',  // Triple space
-  triggerPolish: '   ',     // Triple space (will be distinguished by key combo)
+  triggerTranslateT1: '   ',  // Triple space
+  triggerTranslateT2: '   ',  // Triple space
+  triggerPolish: '   ',       // Triple space
+  targetLanguageT1: 'English',
+  targetLanguageT2: 'Chinese',
   useMock: true,
-  targetLanguage: 'English',
   siteMappings: [...DEFAULT_SITE_MAPPINGS],
 };
 
@@ -170,7 +180,8 @@ export type MessageType =
   | 'CANCEL_STREAM'
   | 'STREAM_CHUNK'
   | 'STREAM_ERROR'
-  | 'REPLACE_TEXT';
+  | 'REPLACE_TEXT'
+  | 'PROCESS_DIRECT_TEXT';
 
 export type Message<T = unknown> = {
   type: MessageType;
@@ -182,6 +193,16 @@ export type ProcessTextPayload = {
   text: string;
   type: ProcessType;
   elementInfo?: InputElementInfo;
+};
+
+export type ProcessDirectTextPayload = {
+  text: string;
+  type: 'translate-t1' | 'translate-t2' | 'polish';
+};
+
+export type ProcessDirectTextResponse = {
+  result: string;
+  targetLanguage?: string;
 };
 
 export type ReplaceTextPayload = {

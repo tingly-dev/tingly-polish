@@ -9,22 +9,23 @@ export class TextSelectionHandler {
 
   // UI elements
   private buttonsContainer: HTMLElement | null = null;
-  private translateButton: HTMLButtonElement | null = null;
+  private translateT1Button: HTMLButtonElement | null = null;
+  private translateT2Button: HTMLButtonElement | null = null;
   private polishButton: HTMLButtonElement | null = null;
   private streamingPreview: HTMLElement | null = null;
 
   // State
   private hideTimeout: number | null = null;
-  private config = { targetLanguage: 'English' };
+  private config = { targetLanguageT1: 'English', targetLanguageT2: 'Chinese' };
   private currentInputElement: HTMLInputElement | HTMLTextAreaElement | null = null;
   private selectionRange: { start: number; end: number } | null = null;
   private currentSelectionRect: DOMRect | null = null;
   private streamingInProgress = false;
-  private streamingResult = '';
   private customReplaceHandler: ((result: string) => void) | null = null;
   private cleanupCallback: (() => void) | null = null;
   private currentStreamId = '';
   private abortController: AbortController | null = null;
+  private currentTargetLanguage: string | undefined = undefined;
 
   private constructor() {
     this.loadConfig();
@@ -58,7 +59,8 @@ export class TextSelectionHandler {
       this.streamingPreview.remove();
       this.streamingPreview = null;
     }
-    this.translateButton = null;
+    this.translateT1Button = null;
+    this.translateT2Button = null;
     this.polishButton = null;
     this.streamingInProgress = false;
     if (this.hideTimeout) {
@@ -73,8 +75,9 @@ export class TextSelectionHandler {
         type: 'GET_CONFIG',
         payload: {},
       });
-      if (response?.data?.targetLanguage) {
-        this.config.targetLanguage = response.data.targetLanguage;
+      if (response?.data) {
+        this.config.targetLanguageT1 = response.data.targetLanguageT1 || 'English';
+        this.config.targetLanguageT2 = response.data.targetLanguageT2 || 'Chinese';
       }
     } catch {
       // Use defaults
@@ -85,8 +88,9 @@ export class TextSelectionHandler {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes['tingly-polish-config']) {
         const newConfig = changes['tingly-polish-config'].newValue;
-        if (newConfig?.targetLanguage) {
-          this.config.targetLanguage = newConfig.targetLanguage;
+        if (newConfig) {
+          this.config.targetLanguageT1 = newConfig.targetLanguageT1 || 'English';
+          this.config.targetLanguageT2 = newConfig.targetLanguageT2 || 'Chinese';
         }
       }
     });
@@ -198,8 +202,11 @@ export class TextSelectionHandler {
     this.positionButtons();
     this.buttonsContainer!.style.display = 'flex';
 
-    if (this.translateButton) {
-      this.translateButton.dataset.selectedText = text;
+    if (this.translateT1Button) {
+      this.translateT1Button.dataset.selectedText = text;
+    }
+    if (this.translateT2Button) {
+      this.translateT2Button.dataset.selectedText = text;
     }
     if (this.polishButton) {
       this.polishButton.dataset.selectedText = text;
@@ -215,8 +222,11 @@ export class TextSelectionHandler {
     const container = document.createElement('div');
     container.id = 'tingly-polish-buttons';
     container.innerHTML = `
-      <button class="tingly-btn tingly-btn-translate" title="Translate">
-        <span>T</span>
+      <button class="tingly-btn tingly-btn-t1" title="Translate T1">
+        <span>T1</span>
+      </button>
+      <button class="tingly-btn tingly-btn-t2" title="Translate T2">
+        <span>T2</span>
       </button>
       <button class="tingly-btn tingly-btn-polish" title="Polish">
         <span>P</span>
@@ -227,16 +237,24 @@ export class TextSelectionHandler {
 
     document.body.appendChild(container);
 
-    const translateBtn = container.querySelector('.tingly-btn-translate') as HTMLButtonElement;
+    const t1Btn = container.querySelector('.tingly-btn-t1') as HTMLButtonElement;
+    const t2Btn = container.querySelector('.tingly-btn-t2') as HTMLButtonElement;
     const polishBtn = container.querySelector('.tingly-btn-polish') as HTMLButtonElement;
 
-    translateBtn.style.cssText = FLOATING_STYLES.button + FLOATING_STYLES.translateButton;
+    t1Btn.style.cssText = FLOATING_STYLES.button + FLOATING_STYLES.translateButton;
+    t2Btn.style.cssText = FLOATING_STYLES.button + FLOATING_STYLES.translateButton.replace('#6366f1', '#8b5cf6').replace('#4f46e5', '#7c3aed');
     polishBtn.style.cssText = FLOATING_STYLES.button + FLOATING_STYLES.polishButton;
 
-    translateBtn.addEventListener('click', (e) => {
+    t1Btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      this.handleAction('translate');
+      this.handleActionWithLanguage('translate', this.config.targetLanguageT1);
+    });
+
+    t2Btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.handleActionWithLanguage('translate', this.config.targetLanguageT2);
     });
 
     polishBtn.addEventListener('click', (e) => {
@@ -246,7 +264,8 @@ export class TextSelectionHandler {
     });
 
     this.buttonsContainer = container;
-    this.translateButton = translateBtn;
+    this.translateT1Button = t1Btn;
+    this.translateT2Button = t2Btn;
     this.polishButton = polishBtn;
   }
 
@@ -281,7 +300,8 @@ export class TextSelectionHandler {
 
   private async handleAction(type: 'translate' | 'polish', text?: string): Promise<void> {
     const selectedText = text ||
-      this.translateButton?.dataset.selectedText ||
+      this.translateT1Button?.dataset.selectedText ||
+      this.translateT2Button?.dataset.selectedText ||
       this.polishButton?.dataset.selectedText;
 
     if (!selectedText) return;
@@ -297,6 +317,46 @@ export class TextSelectionHandler {
           text: selectedText,
           type,
           streamId: this.currentStreamId,
+          targetLanguage: this.currentTargetLanguage,
+        },
+      });
+
+      if (response && response.success === false) {
+        await this.handleNonStreamingRequest(selectedText, type);
+      }
+    } catch (error) {
+      console.error('Tingly Polish: Failed to process text', error);
+      try {
+        await this.handleNonStreamingRequest(selectedText, type);
+      } catch {
+        this.cleanupStreaming();
+      }
+    }
+  }
+
+  private async handleActionWithLanguage(type: 'translate' | 'polish', targetLanguage: string, text?: string): Promise<void> {
+    const selectedText = text ||
+      this.translateT1Button?.dataset.selectedText ||
+      this.translateT2Button?.dataset.selectedText ||
+      this.polishButton?.dataset.selectedText;
+
+    if (!selectedText) return;
+
+    // Set the target language for this request
+    this.currentTargetLanguage = targetLanguage;
+
+    try {
+      this.showLoading();
+      this.streamingInProgress = true;
+      this.showStreamingPreview();
+
+      const response = await chrome.runtime.sendMessage({
+        type: 'PROCESS_TEXT_STREAM',
+        payload: {
+          text: selectedText,
+          type,
+          streamId: this.currentStreamId,
+          targetLanguage: targetLanguage,
         },
       });
 
@@ -320,7 +380,11 @@ export class TextSelectionHandler {
     try {
       const response = await chrome.runtime.sendMessage({
         type: 'PROCESS_TEXT',
-        payload: { text: selectedText, type },
+        payload: {
+          text: selectedText,
+          type,
+          targetLanguage: this.currentTargetLanguage,
+        },
       });
 
       if (response?.data?.result) {
@@ -336,7 +400,6 @@ export class TextSelectionHandler {
     if (!this.streamingInProgress) return;
 
     const { accumulated, done } = payload;
-    this.streamingResult = accumulated;
     this.updateStreamingPreview(accumulated);
 
     if (done) {
@@ -503,6 +566,7 @@ export class TextSelectionHandler {
     }
 
     this.customReplaceHandler = null;
+    this.currentTargetLanguage = undefined;
 
     if (this.streamingPreview) {
       this.streamingPreview.remove();
@@ -558,9 +622,13 @@ export class TextSelectionHandler {
   }
 
   private showLoading(): void {
-    if (this.translateButton) {
-      this.translateButton.style.opacity = '0.6';
-      this.translateButton.style.pointerEvents = 'none';
+    if (this.translateT1Button) {
+      this.translateT1Button.style.opacity = '0.6';
+      this.translateT1Button.style.pointerEvents = 'none';
+    }
+    if (this.translateT2Button) {
+      this.translateT2Button.style.opacity = '0.6';
+      this.translateT2Button.style.pointerEvents = 'none';
     }
     if (this.polishButton) {
       this.polishButton.style.opacity = '0.6';
@@ -569,9 +637,13 @@ export class TextSelectionHandler {
   }
 
   private hideLoading(): void {
-    if (this.translateButton) {
-      this.translateButton.style.opacity = '1';
-      this.translateButton.style.pointerEvents = 'auto';
+    if (this.translateT1Button) {
+      this.translateT1Button.style.opacity = '1';
+      this.translateT1Button.style.pointerEvents = 'auto';
+    }
+    if (this.translateT2Button) {
+      this.translateT2Button.style.opacity = '1';
+      this.translateT2Button.style.pointerEvents = 'auto';
     }
     if (this.polishButton) {
       this.polishButton.style.opacity = '1';
@@ -591,8 +663,11 @@ export class TextSelectionHandler {
       50
     );
 
-    if (this.translateButton) {
-      this.translateButton.dataset.selectedText = text;
+    if (this.translateT1Button) {
+      this.translateT1Button.dataset.selectedText = text;
+    }
+    if (this.translateT2Button) {
+      this.translateT2Button.dataset.selectedText = text;
     }
     if (this.polishButton) {
       this.polishButton.dataset.selectedText = text;
@@ -608,10 +683,12 @@ export class TextSelectionHandler {
     type: 'translate' | 'polish',
     text: string,
     onReplace: (result: string) => void,
-    onCleanup?: () => void
+    onCleanup?: () => void,
+    targetLanguage?: string
   ): Promise<void> {
     this.customReplaceHandler = onReplace;
     this.cleanupCallback = onCleanup || null;
+    this.currentTargetLanguage = targetLanguage;
 
     // Use element rect if we have an input element
     if (this.currentInputElement) {
@@ -625,8 +702,11 @@ export class TextSelectionHandler {
       );
     }
 
-    if (this.translateButton) {
-      this.translateButton.dataset.selectedText = text;
+    if (this.translateT1Button) {
+      this.translateT1Button.dataset.selectedText = text;
+    }
+    if (this.translateT2Button) {
+      this.translateT2Button.dataset.selectedText = text;
     }
     if (this.polishButton) {
       this.polishButton.dataset.selectedText = text;
