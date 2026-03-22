@@ -1,5 +1,20 @@
 import { positionNearSelection, getSelectionRect, getInputSelectionRect, FLOATING_STYLES } from './FloatingUI.js';
 
+// Language code mapping
+const LANGUAGE_CODES: Record<string, string> = {
+  'English': 'en',
+  'Chinese': 'zh',
+  'Japanese': 'ja',
+  'Korean': 'ko',
+  'Spanish': 'es',
+  'French': 'fr',
+  'German': 'de',
+  'Italian': 'it',
+  'Portuguese': 'pt',
+  'Russian': 'ru',
+  'Arabic': 'ar',
+};
+
 /**
  * Handles text selection and floating action buttons
  * Singleton pattern ensures only one instance and one preview at a time
@@ -219,14 +234,17 @@ export class TextSelectionHandler {
       existing.remove();
     }
 
+    const t1Code = LANGUAGE_CODES[this.config.targetLanguageT1] || 'en';
+    const t2Code = LANGUAGE_CODES[this.config.targetLanguageT2] || 'zh';
+
     const container = document.createElement('div');
     container.id = 'tingly-polish-buttons';
     container.innerHTML = `
       <button class="tingly-btn tingly-btn-t1" title="Translate T1">
-        <span>T1</span>
+        <span>T ${t1Code}</span>
       </button>
       <button class="tingly-btn tingly-btn-t2" title="Translate T2">
-        <span>T2</span>
+        <span>T ${t2Code}</span>
       </button>
       <button class="tingly-btn tingly-btn-polish" title="Polish">
         <span>P</span>

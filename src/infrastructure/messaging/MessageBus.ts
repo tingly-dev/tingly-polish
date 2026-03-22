@@ -124,5 +124,6 @@ export const MessageTopics = {
   // Processing messages
   PROCESS_TEXT: 'PROCESS_TEXT' as MessageType,
   PROCESS_TEXT_STREAM: 'PROCESS_TEXT_STREAM' as MessageType,
+  PROCESS_DIRECT_TEXT: 'PROCESS_DIRECT_TEXT' as MessageType,
   REPLACE_TEXT: 'REPLACE_TEXT' as MessageType,
 } as const;

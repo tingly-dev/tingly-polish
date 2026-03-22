@@ -154,7 +154,7 @@ export function QuickProcessPage() {
                   minWidth: 120,
                 }}
               >
-                {processing && currentOp === 'translate-t1' ? 'Processing...' : `T1: ${config?.targetLanguageT1 || 'English'}`}
+                {processing && currentOp === 'translate-t1' ? 'Processing...' : `Translate 1: ${config?.targetLanguageT1 || 'English'}`}
               </Button>
               <Button
                 variant="contained"
@@ -166,7 +166,7 @@ export function QuickProcessPage() {
                   minWidth: 120,
                 }}
               >
-                {processing && currentOp === 'translate-t2' ? 'Processing...' : `T2: ${config?.targetLanguageT2 || 'Chinese'}`}
+                {processing && currentOp === 'translate-t2' ? 'Processing...' : `Translate 2: ${config?.targetLanguageT2 || 'Chinese'}`}
               </Button>
               <Button
                 variant="contained"

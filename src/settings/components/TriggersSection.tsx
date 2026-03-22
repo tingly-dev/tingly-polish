@@ -177,7 +177,7 @@ export function TriggersSection() {
           <Box>
             <Box display="flex" alignItems="center" gap={1} mb={3}>
               <TranslateIcon color="primary" sx={{ fontSize: '1.1rem' }} />
-              <Typography variant="h6">Translation T1 (Primary)</Typography>
+              <Typography variant="h6">Translate 1 (Primary)</Typography>
             </Box>
 
             <Box
@@ -191,14 +191,14 @@ export function TriggersSection() {
             >
               <Box display="flex" flexDirection="column" gap={3}>
                 <TriggerKeys
-                  label="Translation T1 Trigger"
+                  label="Translate 1 Trigger"
                   value={displayConfig.triggerTranslateT1 || ''}
                   onChange={(value) => handleFieldChange('triggerTranslateT1', value)}
                   helperText="Click keys to set the pattern that triggers T1 translation"
                 />
                 <TextField
                   select
-                  label="T1 Target Language"
+                  label="Translate 1 Target Language"
                   value={displayConfig.targetLanguageT1 || 'English'}
                   onChange={(e) => handleFieldChange('targetLanguageT1', e.target.value)}
                   fullWidth
@@ -218,7 +218,7 @@ export function TriggersSection() {
           <Box>
             <Box display="flex" alignItems="center" gap={1} mb={3}>
               <TranslateIcon color="secondary" sx={{ fontSize: '1.1rem' }} />
-              <Typography variant="h6">Translation T2 (Secondary)</Typography>
+              <Typography variant="h6">Translate 2 (Secondary)</Typography>
             </Box>
 
             <Box
@@ -232,14 +232,14 @@ export function TriggersSection() {
             >
               <Box display="flex" flexDirection="column" gap={3}>
                 <TriggerKeys
-                  label="Translation T2 Trigger"
+                  label="Translate 2 Trigger"
                   value={displayConfig.triggerTranslateT2 || ''}
                   onChange={(value) => handleFieldChange('triggerTranslateT2', value)}
                   helperText="Click keys to set the pattern that triggers T2 translation"
                 />
                 <TextField
                   select
-                  label="T2 Target Language"
+                  label="Translate 2 Target Language"
                   value={displayConfig.targetLanguageT2 || 'Chinese'}
                   onChange={(e) => handleFieldChange('targetLanguageT2', e.target.value)}
                   fullWidth

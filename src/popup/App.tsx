@@ -22,15 +22,32 @@ import {
 } from '@mui/icons-material';
 import { getConfig, processDirectText, copyToClipboard } from './lib/api';
 
+// Language code mapping
+const LANGUAGE_CODES: Record<string, string> = {
+  'English': 'en',
+  'Chinese': 'zh',
+  'Japanese': 'ja',
+  'Korean': 'ko',
+  'Spanish': 'es',
+  'French': 'fr',
+  'German': 'de',
+  'Italian': 'it',
+  'Portuguese': 'pt',
+  'Russian': 'ru',
+  'Arabic': 'ar',
+};
+
 function ActionButton({
   icon,
   label,
+  subLabel,
   onClick,
   color = '#6366f1',
   disabled = false,
 }: {
   icon: React.ReactNode;
   label: string;
+  subLabel?: string;
   onClick: () => void;
   color?: string;
   disabled?: boolean;
@@ -81,16 +98,31 @@ function ActionButton({
       >
         {icon}
       </Box>
-      <Typography
-        sx={{
-          fontFamily: 'Inter, sans-serif',
-          fontSize: '0.8rem',
-          fontWeight: 500,
-          color: disabled ? 'text.disabled' : 'text.primary',
-        }}
-      >
-        {label}
-      </Typography>
+      <Box sx={{ flex: 1, textAlign: 'left' }}>
+        <Typography
+          sx={{
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '0.8rem',
+            fontWeight: 500,
+            color: disabled ? 'text.disabled' : 'text.primary',
+            lineHeight: 1.2,
+          }}
+        >
+          {label}
+        </Typography>
+        {subLabel && (
+          <Typography
+            sx={{
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '0.65rem',
+              color: disabled ? 'text.disabled' : 'text.secondary',
+              lineHeight: 1,
+            }}
+          >
+            {subLabel}
+          </Typography>
+        )}
+      </Box>
     </Button>
   );
 }
@@ -171,13 +203,15 @@ export function App() {
   if (!mounted) return null;
 
   const hasInput = input.trim().length > 0;
+  const t1Code = config ? LANGUAGE_CODES[config.targetLanguageT1] || 'en' : 'en';
+  const t2Code = config ? LANGUAGE_CODES[config.targetLanguageT2] || 'zh' : 'zh';
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box
         sx={{
-          width: 340,
+          width: 320,
           maxHeight: 500,
           bgcolor: 'background.default',
           display: 'flex',
@@ -299,14 +333,16 @@ export function App() {
             <Box display="flex" flexDirection="column" gap={0.75}>
               <ActionButton
                 icon={processing && currentOp === 'translate-t1' ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <TranslateIcon sx={{ fontSize: '0.9rem' }} />}
-                label={`T1: ${config?.targetLanguageT1 || 'English'}`}
+                label="Translate"
+                subLabel={t1Code}
                 onClick={() => handleProcess('translate-t1')}
                 color="#6366f1"
                 disabled={processing || !hasInput}
               />
               <ActionButton
                 icon={processing && currentOp === 'translate-t2' ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <TranslateIcon sx={{ fontSize: '0.9rem' }} />}
-                label={`T2: ${config?.targetLanguageT2 || 'Chinese'}`}
+                label="Translate"
+                subLabel={t2Code}
                 onClick={() => handleProcess('translate-t2')}
                 color="#8b5cf6"
                 disabled={processing || !hasInput}
@@ -414,3 +450,4 @@ export function App() {
 }
 
 export default App;
+

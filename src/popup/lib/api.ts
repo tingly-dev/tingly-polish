@@ -136,7 +136,7 @@ export async function processDirectText(
   type: 'translate-t1' | 'translate-t2' | 'polish'
 ): Promise<{ result: string; targetLanguage?: string }> {
   return sendMessage<{ text: string; type: 'translate-t1' | 'translate-t2' | 'polish' }, { result: string; targetLanguage?: string }>(
-    'PROCESS_DIRECT_TEXT',
+    MessageTopics.PROCESS_DIRECT_TEXT,
     { text, type }
   );
 }

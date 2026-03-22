@@ -109,7 +109,15 @@ class ServiceWorker {
       }
     );
 
-    // Streaming processing handler
+    // Direct text processing handler (for Quick Process panel)
+    this.messageBus.onMessage<ProcessDirectTextPayload, ProcessDirectTextResponse>(
+      MessageTopics.PROCESS_DIRECT_TEXT,
+      async (payload) => {
+        return await this.processDirectText(payload);
+      }
+    );
+
+    // Streaming processing handler (needs tab ID for content script communication)
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'PROCESS_TEXT_STREAM') {
         // Get tab ID from sender (content scripts have a tab property)
@@ -126,20 +134,6 @@ class ServiceWorker {
         this.processTextStream(message.payload, tabId)
           .then(() => {
             sendResponse({ success: true });
-          })
-          .catch(error => {
-            sendResponse({
-              success: false,
-              error: error instanceof Error ? error.message : 'Unknown error',
-            });
-          });
-        return true; // Keep channel open for async response
-      }
-
-      if (message.type === 'PROCESS_DIRECT_TEXT') {
-        this.processDirectText(message.payload)
-          .then(result => {
-            sendResponse({ success: true, data: result });
           })
           .catch(error => {
             sendResponse({
