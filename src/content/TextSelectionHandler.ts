@@ -1,19 +1,5 @@
 import { positionNearSelection, getSelectionRect, getInputSelectionRect, FLOATING_STYLES } from './FloatingUI.js';
-
-// Language code mapping
-const LANGUAGE_CODES: Record<string, string> = {
-  'English': 'en',
-  'Chinese': 'zh',
-  'Japanese': 'ja',
-  'Korean': 'ko',
-  'Spanish': 'es',
-  'French': 'fr',
-  'German': 'de',
-  'Italian': 'it',
-  'Portuguese': 'pt',
-  'Russian': 'ru',
-  'Arabic': 'ar',
-};
+import { LANGUAGE_NATIVE_NAMES } from '../domain/constants.js';
 
 /**
  * Handles text selection and floating action buttons
@@ -234,17 +220,17 @@ export class TextSelectionHandler {
       existing.remove();
     }
 
-    const t1Code = LANGUAGE_CODES[this.config.targetLanguageT1] || 'en';
-    const t2Code = LANGUAGE_CODES[this.config.targetLanguageT2] || 'zh';
+    const t1NativeName = LANGUAGE_NATIVE_NAMES[this.config.targetLanguageT1] || this.config.targetLanguageT1;
+    const t2NativeName = LANGUAGE_NATIVE_NAMES[this.config.targetLanguageT2] || this.config.targetLanguageT2;
 
     const container = document.createElement('div');
     container.id = 'tingly-polish-buttons';
     container.innerHTML = `
       <button class="tingly-btn tingly-btn-t1" title="Translate T1">
-        <span>T ${t1Code}</span>
+        <span>T ${t1NativeName}</span>
       </button>
       <button class="tingly-btn tingly-btn-t2" title="Translate T2">
-        <span>T ${t2Code}</span>
+        <span>T ${t2NativeName}</span>
       </button>
       <button class="tingly-btn tingly-btn-polish" title="Polish">
         <span>P</span>

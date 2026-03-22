@@ -21,21 +21,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { getConfig, processDirectText, copyToClipboard } from './lib/api';
-
-// Language code mapping
-const LANGUAGE_CODES: Record<string, string> = {
-  'English': 'en',
-  'Chinese': 'zh',
-  'Japanese': 'ja',
-  'Korean': 'ko',
-  'Spanish': 'es',
-  'French': 'fr',
-  'German': 'de',
-  'Italian': 'it',
-  'Portuguese': 'pt',
-  'Russian': 'ru',
-  'Arabic': 'ar',
-};
+import { LANGUAGE_NATIVE_NAMES } from '../domain/constants';
 
 function ActionButton({
   icon,
@@ -114,9 +100,11 @@ function ActionButton({
           <Typography
             sx={{
               fontFamily: 'Inter, sans-serif',
-              fontSize: '0.65rem',
-              color: disabled ? 'text.disabled' : 'text.secondary',
+              fontSize: '0.6rem',
+              color: disabled ? 'text.disabled' : color,
               lineHeight: 1,
+              opacity: 0.85,
+              textTransform: 'lowercase',
             }}
           >
             {subLabel}
@@ -203,8 +191,8 @@ export function App() {
   if (!mounted) return null;
 
   const hasInput = input.trim().length > 0;
-  const t1Code = config ? LANGUAGE_CODES[config.targetLanguageT1] || 'en' : 'en';
-  const t2Code = config ? LANGUAGE_CODES[config.targetLanguageT2] || 'zh' : 'zh';
+  const t1NativeName = config ? LANGUAGE_NATIVE_NAMES[config.targetLanguageT1] || config.targetLanguageT1 : 'English';
+  const t2NativeName = config ? LANGUAGE_NATIVE_NAMES[config.targetLanguageT2] || config.targetLanguageT2 : 'Chinese';
 
   return (
     <ThemeProvider theme={theme}>
@@ -334,7 +322,7 @@ export function App() {
               <ActionButton
                 icon={processing && currentOp === 'translate-t1' ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <TranslateIcon sx={{ fontSize: '0.9rem' }} />}
                 label="Translate"
-                subLabel={t1Code}
+                subLabel={t1NativeName}
                 onClick={() => handleProcess('translate-t1')}
                 color="#6366f1"
                 disabled={processing || !hasInput}
@@ -342,7 +330,7 @@ export function App() {
               <ActionButton
                 icon={processing && currentOp === 'translate-t2' ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <TranslateIcon sx={{ fontSize: '0.9rem' }} />}
                 label="Translate"
-                subLabel={t2Code}
+                subLabel={t2NativeName}
                 onClick={() => handleProcess('translate-t2')}
                 color="#8b5cf6"
                 disabled={processing || !hasInput}

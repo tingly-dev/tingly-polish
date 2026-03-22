@@ -19,6 +19,7 @@ import { getConfig, updateConfig } from '../lib/api';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import { TriggerKeys } from '../../popup/components/TriggerKeys';
+import { LANGUAGE_NATIVE_NAMES, AVAILABLE_LANGUAGES } from '../../domain/constants';
 
 const SECTION_ID = 'triggers';
 
@@ -204,9 +205,9 @@ export function TriggersSection() {
                   fullWidth
                   size="small"
                 >
-                  {['English', 'Chinese', 'Japanese', 'Korean', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Arabic'].map((lang) => (
+                  {AVAILABLE_LANGUAGES.map((lang) => (
                     <MenuItem key={lang} value={lang}>
-                      {lang}
+                      {LANGUAGE_NATIVE_NAMES[lang]}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -245,9 +246,9 @@ export function TriggersSection() {
                   fullWidth
                   size="small"
                 >
-                  {['English', 'Chinese', 'Japanese', 'Korean', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Arabic'].map((lang) => (
+                  {AVAILABLE_LANGUAGES.map((lang) => (
                     <MenuItem key={lang} value={lang}>
-                      {lang}
+                      {LANGUAGE_NATIVE_NAMES[lang]}
                     </MenuItem>
                   ))}
                 </TextField>

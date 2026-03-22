@@ -24,6 +24,7 @@ import {
   resetConfig,
 } from '../lib/api';
 import { TriggerKeys } from './TriggerKeys';
+import { LANGUAGE_NATIVE_NAMES, AVAILABLE_LANGUAGES } from '../../domain/constants';
 
 export function AIConfigPage() {
   const [config, setConfig] = React.useState<Config>({
@@ -259,9 +260,9 @@ export function AIConfigPage() {
                     size="small"
                     sx={{ mt: 2 }}
                   >
-                    {['English', 'Chinese', 'Japanese', 'Korean', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Arabic'].map((lang) => (
+                    {AVAILABLE_LANGUAGES.map((lang) => (
                       <MenuItem key={lang} value={lang}>
-                        {lang}
+                        {LANGUAGE_NATIVE_NAMES[lang]}
                       </MenuItem>
                     ))}
                   </TextField>
@@ -289,9 +290,9 @@ export function AIConfigPage() {
                     size="small"
                     sx={{ mt: 2 }}
                   >
-                    {['English', 'Chinese', 'Japanese', 'Korean', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Arabic'].map((lang) => (
+                    {AVAILABLE_LANGUAGES.map((lang) => (
                       <MenuItem key={lang} value={lang}>
-                        {lang}
+                        {LANGUAGE_NATIVE_NAMES[lang]}
                       </MenuItem>
                     ))}
                   </TextField>

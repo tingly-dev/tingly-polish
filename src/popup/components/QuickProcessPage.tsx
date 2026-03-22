@@ -17,6 +17,7 @@ import {
 import type { Config } from '../../domain/types';
 import { getConfig, processDirectText } from '../lib/api';
 import { copyToClipboard } from '../lib/api';
+import { LANGUAGE_NATIVE_NAMES } from '../../domain/constants';
 
 export function QuickProcessPage() {
   const [input, setInput] = React.useState('');
@@ -75,8 +76,8 @@ export function QuickProcessPage() {
   };
 
   const getOperationLabel = (type: 'translate-t1' | 'translate-t2' | 'polish') => {
-    if (type === 'translate-t1') return `T1: ${config?.targetLanguageT1 || 'English'}`;
-    if (type === 'translate-t2') return `T2: ${config?.targetLanguageT2 || 'Chinese'}`;
+    if (type === 'translate-t1') return `T1: ${LANGUAGE_NATIVE_NAMES[config?.targetLanguageT1 || 'English']}`;
+    if (type === 'translate-t2') return `T2: ${LANGUAGE_NATIVE_NAMES[config?.targetLanguageT2 || 'Chinese']}`;
     return 'Polish';
   };
 
@@ -154,7 +155,7 @@ export function QuickProcessPage() {
                   minWidth: 120,
                 }}
               >
-                {processing && currentOp === 'translate-t1' ? 'Processing...' : `Translate 1: ${config?.targetLanguageT1 || 'English'}`}
+                {processing && currentOp === 'translate-t1' ? 'Processing...' : `Translate 1: ${LANGUAGE_NATIVE_NAMES[config?.targetLanguageT1 || 'English']}`}
               </Button>
               <Button
                 variant="contained"
@@ -166,7 +167,7 @@ export function QuickProcessPage() {
                   minWidth: 120,
                 }}
               >
-                {processing && currentOp === 'translate-t2' ? 'Processing...' : `Translate 2: ${config?.targetLanguageT2 || 'Chinese'}`}
+                {processing && currentOp === 'translate-t2' ? 'Processing...' : `Translate 2: ${LANGUAGE_NATIVE_NAMES[config?.targetLanguageT2 || 'Chinese']}`}
               </Button>
               <Button
                 variant="contained"
