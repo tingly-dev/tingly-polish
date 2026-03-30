@@ -17,5 +17,20 @@ export const LANGUAGE_NATIVE_NAMES: Record<string, string> = {
   'Arabic': 'العربية',
 };
 
+// Short language names for compact UI (floating buttons, etc.)
+export const LANGUAGE_SHORT_NAMES: Record<string, string> = {
+  'English': 'En',
+  'Chinese': '中',
+  'Japanese': '日',
+  'Korean': '한',
+  'Spanish': 'Es',
+  'French': 'Fr',
+  'German': 'De',
+  'Italian': 'It',
+  'Portuguese': 'Pt',
+  'Russian': 'Ru',
+  'Arabic': 'Ar',
+};
+
 // Available languages list
 export const AVAILABLE_LANGUAGES = Object.keys(LANGUAGE_NATIVE_NAMES) as const;

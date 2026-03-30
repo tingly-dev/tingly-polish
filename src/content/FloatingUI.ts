@@ -157,7 +157,7 @@ export const FLOATING_STYLES = {
     transition: all 0.15s ease;
     color: #ffffff;
     padding: 0;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 600;
     border: 1px solid transparent;
   `,

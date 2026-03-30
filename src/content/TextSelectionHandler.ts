@@ -1,5 +1,5 @@
 import { positionNearSelection, getSelectionRect, getInputSelectionRect, FLOATING_STYLES } from './FloatingUI.js';
-import { LANGUAGE_NATIVE_NAMES } from '../domain/constants.js';
+import { LANGUAGE_NATIVE_NAMES, LANGUAGE_SHORT_NAMES } from '../domain/constants.js';
 
 /**
  * Handles text selection and floating action buttons
@@ -220,17 +220,17 @@ export class TextSelectionHandler {
       existing.remove();
     }
 
-    const t1NativeName = LANGUAGE_NATIVE_NAMES[this.config.targetLanguageT1] || this.config.targetLanguageT1;
-    const t2NativeName = LANGUAGE_NATIVE_NAMES[this.config.targetLanguageT2] || this.config.targetLanguageT2;
+    const t1ShortName = LANGUAGE_SHORT_NAMES[this.config.targetLanguageT1] || this.config.targetLanguageT1;
+    const t2ShortName = LANGUAGE_SHORT_NAMES[this.config.targetLanguageT2] || this.config.targetLanguageT2;
 
     const container = document.createElement('div');
     container.id = 'tingly-polish-buttons';
     container.innerHTML = `
       <button class="tingly-btn tingly-btn-t1" title="Translate T1">
-        <span>T ${t1NativeName}</span>
+        <span>T ${t1ShortName}</span>
       </button>
       <button class="tingly-btn tingly-btn-t2" title="Translate T2">
-        <span>T ${t2NativeName}</span>
+        <span>T ${t2ShortName}</span>
       </button>
       <button class="tingly-btn tingly-btn-polish" title="Polish">
         <span>P</span>

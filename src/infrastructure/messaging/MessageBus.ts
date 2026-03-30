@@ -93,12 +93,9 @@ export class ChromeMessageBus implements IMessageBus {
         return true; // Keep message channel open for async response
       }
 
-      sendResponse({
-        data: null,
-        error: `No handler registered for message type: ${type}`,
-      });
-
-      return false;
+      // No handler registered for this type — pass through silently
+      // to let other onMessage listeners handle it
+      return;
     });
   }
 
