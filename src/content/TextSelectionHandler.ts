@@ -246,7 +246,7 @@ export class TextSelectionHandler {
     const polishBtn = container.querySelector('.tingly-btn-polish') as HTMLButtonElement;
 
     t1Btn.style.cssText = FLOATING_STYLES.button + FLOATING_STYLES.translateButton;
-    t2Btn.style.cssText = FLOATING_STYLES.button + FLOATING_STYLES.translateButton.replace('#6366f1', '#8b5cf6').replace('#4f46e5', '#7c3aed');
+    t2Btn.style.cssText = FLOATING_STYLES.button + FLOATING_STYLES.translateButton.replace('#3b82f6', '#8b5cf6').replace('#2563eb', '#7c3aed');
     polishBtn.style.cssText = FLOATING_STYLES.button + FLOATING_STYLES.polishButton;
 
     t1Btn.addEventListener('click', (e) => {
@@ -737,7 +737,7 @@ export class TextSelectionHandler {
         justify-content: space-between;
         align-items: center;
         padding: 12px 16px;
-        border-bottom: 1px solid #334155;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
       }
 
       .tingly-preview-title {
@@ -746,7 +746,7 @@ export class TextSelectionHandler {
         gap: 8px;
         font-size: 14px;
         font-weight: 600;
-        color: #94a3b8;
+        color: #64748b;
       }
 
       .tingly-preview-indicator {
@@ -771,7 +771,7 @@ export class TextSelectionHandler {
       .tingly-btn-close {
         background: transparent;
         border: none;
-        color: #94a3b8;
+        color: #64748b;
         cursor: pointer;
         font-size: 13px;
         padding: 4px 8px;
@@ -780,17 +780,17 @@ export class TextSelectionHandler {
       }
 
       .tingly-btn-cancel {
-        background: rgba(239, 68, 68, 0.15);
+        background: rgba(239, 68, 68, 0.08);
         color: #ef4444;
-        border: 1px solid rgba(239, 68, 68, 0.3);
+        border: 1px solid rgba(239, 68, 68, 0.2);
       }
 
       .tingly-btn-cancel:hover {
-        background: rgba(239, 68, 68, 0.25);
+        background: rgba(239, 68, 68, 0.15);
       }
 
       .tingly-btn-close:hover {
-        background: rgba(239, 68, 68, 0.15);
+        background: rgba(239, 68, 68, 0.08);
         color: #ef4444;
       }
 
@@ -807,7 +807,7 @@ export class TextSelectionHandler {
       .tingly-preview-content.tingly-streaming::after {
         content: '|';
         animation: tingly-blink 1s step-end infinite;
-        color: #6366f1;
+        color: #3b82f6;
       }
 
       .tingly-btn-copy {
@@ -816,17 +816,18 @@ export class TextSelectionHandler {
         justify-content: center;
         width: 32px;
         height: 32px;
-        background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
-        border: 1px solid #475569;
+        background: #f1f5f9;
+        border: 1px solid rgba(148, 163, 184, 0.3);
         border-radius: 6px;
         cursor: pointer;
-        color: #e2e8f0;
+        color: #475569;
         transition: all 0.15s ease;
       }
 
       .tingly-btn-copy:hover {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-        border-color: #6366f1;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border-color: #3b82f6;
+        color: #ffffff;
       }
 
       .tingly-btn-copy.copied {

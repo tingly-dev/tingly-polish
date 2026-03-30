@@ -48,10 +48,10 @@ function ActionButton({
         px: 2,
         borderRadius: 2,
         background: disabled
-          ? 'rgba(30, 41, 59, 0.3)'
-          : 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%)',
+          ? 'rgba(148, 163, 184, 0.1)'
+          : 'rgba(241, 245, 249, 0.8)',
         border: '1px solid',
-        borderColor: disabled ? 'rgba(51, 65, 85, 0.3)' : 'rgba(51, 65, 85, 0.6)',
+        borderColor: disabled ? 'rgba(148, 163, 184, 0.2)' : 'rgba(148, 163, 184, 0.3)',
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
@@ -73,7 +73,7 @@ function ActionButton({
           height: 28,
           borderRadius: 1.5,
           background: disabled
-            ? 'rgba(100, 116, 139, 0.3)'
+            ? 'rgba(148, 163, 184, 0.15)'
             : `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
           display: 'flex',
           alignItems: 'center',
@@ -223,7 +223,7 @@ export function App() {
               width: 26,
               height: 26,
               borderRadius: '6px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #14b8a6 100%)',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -324,7 +324,7 @@ export function App() {
                 label="Translate"
                 subLabel={t1NativeName}
                 onClick={() => handleProcess('translate-t1')}
-                color="#6366f1"
+                color="#3b82f6"
                 disabled={processing || !hasInput}
               />
               <ActionButton
@@ -409,7 +409,7 @@ export function App() {
             py: 1,
             borderTop: '1px solid',
             borderColor: 'divider',
-            bgcolor: 'rgba(15, 23, 42, 0.3)',
+            bgcolor: 'rgba(241, 245, 249, 0.8)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',

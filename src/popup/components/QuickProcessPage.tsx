@@ -151,7 +151,7 @@ export function QuickProcessPage() {
                 onClick={() => handleProcess('translate-t1')}
                 disabled={processing || !input.trim()}
                 sx={{
-                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                   minWidth: 120,
                 }}
               >

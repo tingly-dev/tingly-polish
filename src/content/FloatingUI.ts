@@ -141,10 +141,10 @@ export const FLOATING_STYLES = {
     display: flex;
     gap: 6px;
     padding: 6px;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border: 1px solid #334155;
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.3);
     border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(59, 130, 246, 0.1);
   `,
   button: `
     width: 40px;
@@ -162,8 +162,8 @@ export const FLOATING_STYLES = {
     border: 1px solid transparent;
   `,
   translateButton: `
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    border-color: #6366f1;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-color: #3b82f6;
   `,
   polishButton: `
     background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
@@ -171,11 +171,11 @@ export const FLOATING_STYLES = {
   `,
   preview: `
     position: absolute;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border: 1px solid #334155;
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.3);
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.3);
-    color: #e2e8f0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.1);
+    color: #1e293b;
     min-width: 280px;
     max-width: 400px;
     max-height: 400px;

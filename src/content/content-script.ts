@@ -294,15 +294,15 @@ export class InputHandler {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-      border: 1px solid #334155;
-      color: #e2e8f0;
+      background: #ffffff;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #475569;
       padding: 8px 16px;
       border-radius: 8px;
       z-index: 999999;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       font-size: 13px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.3);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(59, 130, 246, 0.1);
       pointer-events: none;
     `;
 

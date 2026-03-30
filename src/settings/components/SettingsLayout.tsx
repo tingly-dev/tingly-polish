@@ -52,11 +52,11 @@ export function SettingsLayout({ sidebar, children, sx, ...props }: SettingsLayo
                 width: 40,
                 height: 40,
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #14b8a6 100%)',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)',
               }}
             >
               <Box
