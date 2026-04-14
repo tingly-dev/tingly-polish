@@ -195,7 +195,7 @@ export function TriggersSection() {
                   label="Translate 1 Trigger"
                   value={displayConfig.triggerTranslateT1 || ''}
                   onChange={(value) => handleFieldChange('triggerTranslateT1', value)}
-                  helperText="Click keys to set the pattern that triggers T1 translation"
+                  helperText="Click keys to set the pattern that triggers T1 translation. Leave empty to disable auto-trigger."
                 />
                 <TextField
                   select
@@ -236,7 +236,7 @@ export function TriggersSection() {
                   label="Translate 2 Trigger"
                   value={displayConfig.triggerTranslateT2 || ''}
                   onChange={(value) => handleFieldChange('triggerTranslateT2', value)}
-                  helperText="Click keys to set the pattern that triggers T2 translation"
+                  helperText="Click keys to set the pattern that triggers T2 translation. Leave empty to disable auto-trigger."
                 />
                 <TextField
                   select
@@ -276,7 +276,7 @@ export function TriggersSection() {
                 label="Polish Trigger"
                 value={displayConfig.triggerPolish || ''}
                 onChange={(value) => handleFieldChange('triggerPolish', value)}
-                helperText="Click keys to set the pattern that triggers polish"
+                helperText="Click keys to set the pattern that triggers polish. Leave empty to disable auto-trigger."
               />
             </Box>
           </Box>
@@ -292,7 +292,7 @@ export function TriggersSection() {
             }}
           >
             <Typography variant="body2" color="text.secondary">
-              <strong>How it works:</strong> Type the trigger key pattern in any input field and the extension will automatically process your text. The default trigger is triple space (three spaces).
+              <strong>How it works:</strong> Type the trigger key pattern in any input field and the extension will automatically process your text. The default trigger is triple space (three spaces). Leave any trigger pattern empty to disable that auto-trigger feature.
             </Typography>
           </Box>
         </Box>

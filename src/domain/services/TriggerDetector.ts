@@ -10,12 +10,18 @@ export class TriggerDetector {
   /**
    * Detect if trigger pattern is present at the END of text
    * @param text - Input text to check
-   * @param triggerPattern - Pattern to detect (e.g., '   ' for triple space)
+   * @param triggerPattern - Pattern to detect (e.g., '   ' for triple space). Empty pattern means trigger is disabled.
    * @param type - Type of trigger (translate or polish)
    * @returns Trigger detection result
    */
   detect(text: string, triggerPattern: string, type: ProcessType): TriggerResult {
-    if (!text || !triggerPattern) {
+    // Empty trigger pattern means this trigger is disabled
+    // Note: We use === '' to check for explicitly empty, not trim(), because spaces are valid triggers
+    if (triggerPattern === '') {
+      return { detected: false };
+    }
+
+    if (!text) {
       return { detected: false };
     }
 

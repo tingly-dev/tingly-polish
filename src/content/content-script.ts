@@ -165,39 +165,45 @@ export class InputHandler {
   private async processTrigger(info: InputElementInfo): Promise<void> {
     const { value } = info;
 
-    // Check for translate T1 trigger
-    const translateT1Result = triggerDetector.detect(
-      value,
-      this.config.triggerTranslateT1,
-      'translate'
-    );
+    // Check for translate T1 trigger (skip if pattern is empty/disabled)
+    if (this.config.triggerTranslateT1) {
+      const translateT1Result = triggerDetector.detect(
+        value,
+        this.config.triggerTranslateT1,
+        'translate'
+      );
 
-    if (translateT1Result.detected && translateT1Result.remainingText !== undefined) {
-      await this.handleTrigger('translate-t1', translateT1Result.remainingText, info, this.config.targetLanguageT1);
-      return;
+      if (translateT1Result.detected && translateT1Result.remainingText !== undefined) {
+        await this.handleTrigger('translate-t1', translateT1Result.remainingText, info, this.config.targetLanguageT1);
+        return;
+      }
     }
 
-    // Check for translate T2 trigger
-    const translateT2Result = triggerDetector.detect(
-      value,
-      this.config.triggerTranslateT2,
-      'translate'
-    );
+    // Check for translate T2 trigger (skip if pattern is empty/disabled)
+    if (this.config.triggerTranslateT2) {
+      const translateT2Result = triggerDetector.detect(
+        value,
+        this.config.triggerTranslateT2,
+        'translate'
+      );
 
-    if (translateT2Result.detected && translateT2Result.remainingText !== undefined) {
-      await this.handleTrigger('translate-t2', translateT2Result.remainingText, info, this.config.targetLanguageT2);
-      return;
+      if (translateT2Result.detected && translateT2Result.remainingText !== undefined) {
+        await this.handleTrigger('translate-t2', translateT2Result.remainingText, info, this.config.targetLanguageT2);
+        return;
+      }
     }
 
-    // Check for polish trigger
-    const polishResult = triggerDetector.detect(
-      value,
-      this.config.triggerPolish,
-      'polish'
-    );
+    // Check for polish trigger (skip if pattern is empty/disabled)
+    if (this.config.triggerPolish) {
+      const polishResult = triggerDetector.detect(
+        value,
+        this.config.triggerPolish,
+        'polish'
+      );
 
-    if (polishResult.detected && polishResult.remainingText !== undefined) {
-      await this.handleTrigger('polish', polishResult.remainingText, info);
+      if (polishResult.detected && polishResult.remainingText !== undefined) {
+        await this.handleTrigger('polish', polishResult.remainingText, info);
+      }
     }
   }
 

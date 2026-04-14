@@ -89,9 +89,9 @@ Keep format including space, newline, divider, list and so on.
 Detect language in text and Keep original language even mixture.`,
   userPromptTranslate: `Translate the following text to {targetLanguage}:\n\n{text}\n\nOnly return the translated text, no explanations.`,
   userPromptPolish: `Improve and polish the following text for better clarity and flow:\n\n{text}\n\nOnly return the improved text, no explanations.`,
-  triggerTranslateT1: '   ',  // Triple space
-  triggerTranslateT2: '   ',  // Triple space
-  triggerPolish: '   ',       // Triple space
+  triggerTranslateT1: '   ',  // Triple space (empty string to disable)
+  triggerTranslateT2: '   ',  // Triple space (empty string to disable)
+  triggerPolish: '   ',       // Triple space (empty string to disable)
   targetLanguageT1: 'English',
   targetLanguageT2: 'Chinese',
   useMock: true,
