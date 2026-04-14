@@ -193,6 +193,7 @@ export type ProcessTextPayload = {
   text: string;
   type: ProcessType;
   elementInfo?: InputElementInfo;
+  targetLanguage?: string;
 };
 
 export type ProcessDirectTextPayload = {
@@ -226,6 +227,7 @@ export type ProcessTextStreamPayload = {
   elementInfo?: InputElementInfo;
   tabId?: number;
   frameId?: number;
+  targetLanguage?: string;
 };
 
 // ============================================================================

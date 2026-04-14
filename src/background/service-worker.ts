@@ -173,8 +173,8 @@ class ServiceWorker {
   /**
    * Process text for translation or polish
    */
-  private async processText(payload: ProcessTextPayload): Promise<{ result: string }> {
-    const { text, type } = payload;
+  private async processText(payload: ProcessTextPayload & { targetLanguage?: string }): Promise<{ result: string }> {
+    const { text, type, targetLanguage } = payload;
 
     if (!this.currentConfig || !this.llmClient) {
       throw new Error('Extension not properly configured');
@@ -184,10 +184,9 @@ class ServiceWorker {
       let result: string;
 
       if (type === 'translate') {
-        result = await this.llmClient.translate(
-          text,
-          this.currentConfig.targetLanguageT1 || 'English'
-        );
+        // Use targetLanguage from payload if provided, otherwise default to T1
+        const lang = targetLanguage || this.currentConfig.targetLanguageT1 || 'English';
+        result = await this.llmClient.translate(text, lang);
       } else {
         result = await this.llmClient.polish(text);
       }
@@ -256,12 +255,12 @@ class ServiceWorker {
    * Process text for translation or polish with streaming
    */
   private async processTextStream(
-    payload: ProcessTextPayload & { streamId?: string },
+    payload: ProcessTextPayload & { streamId?: string; targetLanguage?: string },
     tabId: number
   ): Promise<void> {
-    const { text, type, streamId } = payload;
+    const { text, type, streamId, targetLanguage } = payload;
 
-    console.log('Tingly Polish: Starting stream processing', { text, type, tabId, streamId });
+    console.log('Tingly Polish: Starting stream processing', { text, type, tabId, streamId, targetLanguage });
 
     if (!this.currentConfig || !this.llmClient) {
       const error = 'Extension not properly configured';
@@ -279,11 +278,10 @@ class ServiceWorker {
       let stream: AsyncIterable<string>;
 
       if (type === 'translate') {
-        console.log('Tingly Polish: Starting translate stream');
-        stream = this.llmClient.translateStream(
-          text,
-          this.currentConfig.targetLanguageT1 || 'English'
-        );
+        // Use targetLanguage from payload if provided, otherwise default to T1
+        const lang = targetLanguage || this.currentConfig.targetLanguageT1 || 'English';
+        console.log('Tingly Polish: Starting translate stream to', lang);
+        stream = this.llmClient.translateStream(text, lang);
       } else {
         console.log('Tingly Polish: Starting polish stream');
         stream = this.llmClient.polishStream(text);
