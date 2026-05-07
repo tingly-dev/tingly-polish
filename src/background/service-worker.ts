@@ -15,13 +15,15 @@ class ServiceWorker {
   private llmClient: ReturnType<typeof LLMClientFactory.create> | null = null;
   private currentConfig: Config | null = null;
   private activeStreams = new Map<string, AbortController>();
+  private initPromise: Promise<void>;
 
   constructor() {
     this.configRepository = new ChromeConfigRepository();
     this.historyRepository = new ChromeHistoryRepository();
     this.messageBus = new ChromeMessageBus();
 
-    this.initialize();
+    // Store initialization promise to ensure handlers wait for it
+    this.initPromise = this.initialize();
   }
 
   private async initialize(): Promise<void> {
@@ -174,6 +176,9 @@ class ServiceWorker {
    * Process text for translation or polish
    */
   private async processText(payload: ProcessTextPayload & { targetLanguage?: string }): Promise<{ result: string }> {
+    // Ensure initialization is complete before processing
+    await this.initPromise;
+
     const { text, type, targetLanguage } = payload;
 
     if (!this.currentConfig || !this.llmClient) {
@@ -213,6 +218,9 @@ class ServiceWorker {
    * Process text directly (for Quick Process panel)
    */
   private async processDirectText(payload: ProcessDirectTextPayload): Promise<ProcessDirectTextResponse> {
+    // Ensure initialization is complete before processing
+    await this.initPromise;
+
     const { text, type } = payload;
 
     if (!this.currentConfig || !this.llmClient) {
@@ -258,6 +266,9 @@ class ServiceWorker {
     payload: ProcessTextPayload & { streamId?: string; targetLanguage?: string },
     tabId: number
   ): Promise<void> {
+    // Ensure initialization is complete before processing
+    await this.initPromise;
+
     const { text, type, streamId, targetLanguage } = payload;
 
     console.log('Tingly Polish: Starting stream processing', { text, type, tabId, streamId, targetLanguage });
